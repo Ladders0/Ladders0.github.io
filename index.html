@@ -1,0 +1,3989 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AETHER FORGE 2.5D: PIXEL EDITION</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ui-scale: 1;
+    }
+    html {
+      font-size: calc(16px * var(--ui-scale));
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #070b14;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+    }
+    .font-pixel {
+      font-family: 'Press Start 2P', monospace;
+      letter-spacing: 0.04em;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    /* Custom retro scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #38bdf8;
+    }
+    /* Podium rise & crown drop animations */
+    @keyframes podiumRise {
+      0% { transform: translateY(110%) scaleY(0.4); opacity: 0; }
+      70% { transform: translateY(-6%) scaleY(1.04); opacity: 1; }
+      100% { transform: translateY(0) scaleY(1); opacity: 1; }
+    }
+    @keyframes crownDrop {
+      0% { transform: translateY(-70px) rotate(-18deg) scale(1.4); opacity: 0; }
+      65% { transform: translateY(4px) rotate(6deg) scale(0.95); opacity: 1; }
+      100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    }
+    .animate-podium-rise {
+      animation: podiumRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .animate-crown-drop {
+      animation: crownDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .pixel-border {
+      box-shadow:
+        0 0 0 2px #0f172a,
+        0 0 0 4px #334155,
+        0 12px 30px rgba(0, 0, 0, 0.65);
+    }
+    .btn-arcade {
+      transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+    .btn-arcade:active {
+      transform: translateY(2px) scale(0.97);
+    }
+  </style>
+</head>
+<body class="w-screen h-screen relative select-none overflow-hidden bg-slate-950">
+
+  <!-- Main 2.5D Pixel Arena Canvas -->
+  <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+  <!-- Toast Notification Stack (Replaces alert/confirm) -->
+  <div id="toastContainer" class="fixed top-14 left-1/2 -translate-x-1/2 z-[90] flex flex-col items-center gap-1.5 pointer-events-none w-full max-w-md px-3"></div>
+
+  <!-- Top Compact HUD Bar -->
+  <header id="topHudBar" class="fixed top-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1.5 bg-slate-950/85 backdrop-blur-md border-b border-slate-800/90">
+    <!-- Left: Mode Badge, Timer & Player Vitals -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <span id="hudModeBadge" class="px-2 py-1 rounded-lg text-[0.65rem] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">
+        ⚖️ NORMAL
+      </span>
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80">
+        <span class="text-xs">⏱️</span>
+        <span id="hudTimer" class="font-pixel text-xs text-amber-300">02:30</span>
+      </div>
+      <!-- Player HP Bar -->
+      <div class="flex items-center gap-1.5 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-800">
+        <span class="text-[0.65rem] font-bold text-emerald-400">HP</span>
+        <div class="w-20 sm:w-28 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div id="hudPlayerHPBar" class="h-full bg-gradient-to-r from-emerald-500 to-lime-400 transition-all duration-100" style="width: 100%"></div>
+        </div>
+        <span id="hudPlayerHPText" class="text-[0.65rem] font-bold text-slate-200 tabular-nums">200/200</span>
+      </div>
+      <!-- Level, KOs, FP & SP -->
+      <div class="hidden sm:flex items-center gap-1.5 text-[0.68rem] font-bold">
+        <span id="hudPlayerLvl" class="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">LVL 1</span>
+        <span id="hudPlayerKOs" class="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30">0 KOs</span>
+        <span id="hudPlayerFP" class="px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">12/12 FP</span>
+        <span id="hudPlayerSP" class="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">0 SP</span>
+      </div>
+    </div>
+
+    <!-- Right: UI/Map Scalers & Action Buttons -->
+    <div class="flex items-center gap-1 flex-wrap">
+      <!-- UI Scale Controls -->
+      <div class="hidden md:flex items-center gap-1 bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-800 text-[0.65rem]">
+        <span class="text-slate-400 font-semibold">UI</span>
+        <button id="btnUiScaleDown" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">-</button>
+        <span id="hudUiScaleLabel" class="font-bold text-sky-300 w-9 text-center">100%</span>
+        <button id="btnUiScaleUp" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">+</button>
+      </div>
+      <!-- Map Scale Controls -->
+      <div class="hidden lg:flex items-center gap-1 bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-800 text-[0.65rem]">
+        <span class="text-slate-400 font-semibold">MAP</span>
+        <button id="btnMapScaleDown" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">-</button>
+        <span id="hudMapScaleLabel" class="font-bold text-amber-300 w-9 text-center">1.0x</span>
+        <button id="btnMapScaleUp" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">+</button>
+      </div>
+
+      <button id="btnToggleCam" title="Toggle Follow Camera" class="btn-arcade px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyan-300 border border-slate-700">
+        🔭 CAM
+      </button>
+      <button id="btnToggleTouch" title="Toggle Mobile Touch Controls" class="btn-arcade px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700">
+        📱
+      </button>
+      <button id="btnToggleSound" title="Toggle Retro Audio" class="btn-arcade px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700">
+        🔊
+      </button>
+      <button id="btnOpenOnlineTop" class="btn-arcade px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow">
+        🌐 ONLINE
+      </button>
+      <button id="btnOpenForgeTop" class="btn-arcade px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-xs font-extrabold text-slate-950 shadow">
+        ⚒️ ARMORY [B]
+      </button>
+      <button id="btnOpenStatsTop" class="btn-arcade px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700">
+        🏆 [TAB]
+      </button>
+      <button id="btnOpenMenuTop" class="btn-arcade px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700">
+        ⚙️
+      </button>
+    </div>
+  </header>
+
+  <!-- Mini Leaderboard (Hidden on small mobile screens to keep arena clear) -->
+  <aside id="miniLeaderboard" class="hidden md:block fixed top-14 right-3 z-20 w-48 bg-slate-950/80 backdrop-blur-md border border-slate-800/90 rounded-xl p-2.5 pointer-events-none">
+    <div class="flex items-center justify-between text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider mb-1.5 border-b border-slate-800 pb-1">
+      <span>Live Standings</span>
+      <span>KOs / DMG</span>
+    </div>
+    <div id="miniLeaderboardList" class="flex flex-col gap-1 text-xs"></div>
+  </aside>
+
+  <!-- Bottom Active Skill Hotbar -->
+  <div id="bottomSkillBar" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-slate-800/90 shadow-2xl max-w-[96vw] overflow-x-auto">
+    <div id="skillSlotsContainer" class="flex items-center gap-1.5"></div>
+  </div>
+
+  <!-- Mobile Multi-Touch Overlay -->
+  <div id="mobileControlsLayer" class="fixed inset-0 z-20 pointer-events-none hidden">
+    <!-- Left Virtual Joystick -->
+    <div id="touchJoystickBase" class="pointer-events-auto fixed bottom-16 left-5 w-28 h-28 rounded-full bg-slate-900/55 border-2 border-cyan-400/40 backdrop-blur-sm flex items-center justify-center">
+      <div id="touchJoystickKnob" class="w-11 h-11 rounded-full bg-cyan-400/75 border-2 border-white shadow-lg transition-transform duration-75"></div>
+    </div>
+    <!-- Right Multi-Touch Action Cluster -->
+    <div class="fixed bottom-16 right-4 flex flex-col items-end gap-2.5">
+      <div class="flex items-center gap-2">
+        <button id="btnTouchPrev" class="pointer-events-auto w-11 h-11 rounded-xl bg-slate-900/80 border border-slate-600 text-white font-bold text-sm active:bg-slate-700">◀</button>
+        <button id="btnTouchNext" class="pointer-events-auto w-11 h-11 rounded-xl bg-slate-900/80 border border-slate-600 text-white font-bold text-sm active:bg-slate-700">▶</button>
+        <button id="btnTouchForge" class="pointer-events-auto w-11 h-11 rounded-xl bg-amber-500/90 border border-amber-300 text-slate-950 font-extrabold text-sm active:scale-95">⚒️</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="btnTouchJump" class="pointer-events-auto w-16 h-16 rounded-full bg-emerald-500/80 border-2 border-emerald-200 text-slate-950 font-extrabold text-xs shadow-lg active:scale-95">
+          JUMP
+        </button>
+        <button id="btnTouchCast" class="pointer-events-auto w-20 h-20 rounded-full bg-rose-500/85 border-2 border-rose-200 text-white font-extrabold text-sm shadow-xl active:scale-95">
+          CAST
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 1: START MENU / LOBBY CONFIGURATION                 -->
+  <!-- ========================================================= -->
+  <div id="startMenuModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4">
+    <div class="relative w-full max-w-5xl max-h-[94vh] overflow-y-auto bg-slate-900/95 border-2 border-slate-700 rounded-2xl p-4 sm:p-6 shadow-2xl">
+      <!-- Dedicated Close Button -->
+      <button id="btnCloseStartMenu" title="Close Menu" class="btn-arcade absolute top-3 right-3 w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white font-extrabold flex items-center justify-center border border-slate-700">
+        ✖
+      </button>
+
+      <!-- Title Banner -->
+      <div class="text-center mb-4 pr-8">
+        <div class="inline-block px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[0.65rem] font-bold uppercase tracking-widest mb-1.5">
+          2.5D Isometric Pixel Arena Brawler
+        </div>
+        <h1 class="font-pixel text-lg sm:text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-amber-300 to-rose-400 drop-shadow">
+          AETHER FORGE 2.5D
+        </h1>
+      </div>
+
+      <!-- Mode Selector + Quick Actions -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Game Mode</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnModeNormal" class="btn-arcade py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm bg-sky-500 text-slate-950 border-2 border-sky-300 shadow-lg">
+              ⚖️ NORMAL
+            </button>
+            <button id="btnModeAnything" class="btn-arcade py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm bg-slate-800 text-slate-300 border-2 border-slate-700 hover:border-rose-400">
+              🔥 ANYTHING GOES
+            </button>
+          </div>
+          <p id="modeDescText" class="text-[0.72rem] text-slate-300 mt-2 leading-relaxed">
+            <strong>Balanced Arena:</strong> 12 FP starting budget, direct Skill Picker (no flowchart), and fair multi-hit scaling.
+          </p>
+        </div>
+
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Fighter Callsign & Multiplayer</div>
+            <div class="flex gap-2">
+              <input id="inputPlayerName" type="text" maxlength="14" value="AETHER_P1" placeholder="Your Callsign..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-cyan-400" />
+              <button id="btnOpenOnlineFromMenu" class="btn-arcade px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow">
+                🌐 ONLINE ROOM
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-slate-800/80 text-xs">
+            <span class="text-slate-400">Play offline on phone/PC:</span>
+            <button id="btnDownloadHtml" class="btn-arcade px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">
+              📥 DOWNLOAD .HTML
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Classic 8-Fighter Roster Grid (Matches image_f3347a.png) -->
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Choose Your Pixel Fighter</span>
+          <span id="selectedCharLabel" class="text-xs font-bold text-cyan-300">AETHER KNIGHT</span>
+        </div>
+        <div id="charRosterGrid" class="grid grid-cols-4 sm:grid-cols-8 gap-2"></div>
+      </div>
+
+      <!-- Destructible Arena Map Selector -->
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Select Destructible Arena Map</span>
+          <span class="text-[0.68rem] text-amber-300 font-semibold">All map props shatter on impact!</span>
+        </div>
+        <div id="startMapGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"></div>
+      </div>
+
+      <!-- Match Rules, Bot Difficulty, UI Scale & Map Size -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-5 text-xs">
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+          <label class="block text-[0.65rem] font-bold text-slate-400 uppercase mb-1">Arena Players</label>
+          <select id="selectArenaSize" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 font-bold text-white">
+            <option value="2">2 Players</option>
+            <option value="4" selected>4 Players</option>
+            <option value="6">6 Players</option>
+            <option value="10">10 Players</option>
+            <option value="12">12 Players</option>
+            <option value="16">16 Players</option>
+          </select>
+        </div>
+
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+          <label class="block text-[0.65rem] font-bold text-slate-400 uppercase mb-1">Bot Difficulty</label>
+          <select id="selectBotDiff" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 font-bold text-amber-300">
+            <option value="rookie">Rookie (Easiest)</option>
+            <option value="fighter" selected>Fighter (Normal)</option>
+            <option value="veteran">Veteran (Hard)</option>
+            <option value="master">Master (Brutal)</option>
+            <option value="nightmare">Nightmare (Apex)</option>
+          </select>
+        </div>
+
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+          <label class="block text-[0.65rem] font-bold text-slate-400 uppercase mb-1">Match Timer</label>
+          <select id="selectMatchTime" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 font-bold text-emerald-300">
+            <option value="90">01:30 Blitz</option>
+            <option value="150" selected>02:30 Standard</option>
+            <option value="240">04:00 Extended</option>
+            <option value="360">06:00 Marathon</option>
+          </select>
+        </div>
+
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between">
+          <span class="text-[0.65rem] font-bold text-slate-400 uppercase">Screen / UI Size</span>
+          <div class="flex items-center justify-between gap-1 mt-1">
+            <button id="btnStartUiDown" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-bold">-5%</button>
+            <span id="startUiScaleLabel" class="font-bold text-sky-300">100%</span>
+            <button id="btnStartUiUp" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-bold">+5%</button>
+          </div>
+        </div>
+
+        <div class="col-span-2 sm:col-span-1 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between">
+          <span class="text-[0.65rem] font-bold text-slate-400 uppercase">Arena Map Size</span>
+          <div class="flex items-center justify-between gap-1 mt-1">
+            <button id="btnStartMapDown" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-bold">-0.1x</button>
+            <span id="startMapScaleLabel" class="font-bold text-amber-300">1.0x</span>
+            <button id="btnStartMapUp" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-bold">+0.1x</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Launch Button -->
+      <button id="btnStartMatch" class="btn-arcade w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400 hover:brightness-110 text-slate-950 font-pixel text-sm sm:text-base shadow-xl">
+        ▶ ENTER THE FORGE ARENA
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 2: ONLINE ROOM MULTIPLAYER & SERVER BROWSER         -->
+  <!-- ========================================================= -->
+  <div id="onlineLobbyModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4">
+    <div class="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto bg-slate-900 border-2 border-indigo-500/60 rounded-2xl p-4 sm:p-6 shadow-2xl">
+      <button id="btnCloseOnlineLobby" title="Close Online Lobby" class="btn-arcade absolute top-3 right-3 w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white font-extrabold flex items-center justify-center border border-slate-700">
+        ✖
+      </button>
+
+      <div class="flex items-center gap-2.5 mb-3 pr-10">
+        <span class="text-2xl">🌐</span>
+        <div>
+          <h2 class="font-pixel text-sm sm:text-base text-indigo-300">ONLINE ARENA ROOMS</h2>
+          <p class="text-xs text-slate-400">Host a server or join friends via live browser, 5-letter code, or invite link.</p>
+        </div>
+      </div>
+
+      <div id="netStatusBanner" class="mb-4 px-3 py-2 rounded-xl bg-indigo-950/70 border border-indigo-500/40 text-xs text-indigo-200 font-semibold">
+        Ready to host or join an online room!
+      </div>
+
+      <!-- Host or Join Controls -->
+      <div id="lobbySetupControls" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <!-- Create Room -->
+        <div class="bg-slate-950/85 border border-slate-800 rounded-xl p-3.5">
+          <div class="text-xs font-bold text-slate-400 uppercase mb-2">Host a New Server</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnCreatePublicRoom" class="btn-arcade py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs">
+              📡 PUBLIC SERVER
+            </button>
+            <button id="btnCreatePrivateRoom" class="btn-arcade py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-extrabold text-xs">
+              🔒 PRIVATE ROOM
+            </button>
+          </div>
+          <p class="text-[0.68rem] text-slate-400 mt-2">
+            Public servers appear in the Live Browser below. Private rooms join via Room Code or Invite Link.
+          </p>
+        </div>
+
+        <!-- Join by Code -->
+        <div class="bg-slate-950/85 border border-slate-800 rounded-xl p-3.5">
+          <div class="text-xs font-bold text-slate-400 uppercase mb-2">Join by 5-Letter Room Code</div>
+          <div class="flex gap-2">
+            <input id="inputRoomCodeJoin" type="text" maxlength="6" placeholder="e.g. AF72K" class="w-28 uppercase font-pixel text-center bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-300 focus:outline-none focus:border-indigo-400" />
+            <button id="btnJoinByCode" class="btn-arcade flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs">
+              🔗 JOIN WITH CODE
+            </button>
+          </div>
+          <p class="text-[0.68rem] text-slate-400 mt-2">
+            Have an invite link (<code class="text-cyan-300">?room=CODE</code>)? Opening it connects automatically!
+          </p>
+        </div>
+      </div>
+
+      <!-- Active Connected Room Panel -->
+      <div id="activeRoomPanel" class="hidden bg-indigo-950/40 border border-indigo-500/50 rounded-xl p-3.5 mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-indigo-500/30">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-indigo-300 uppercase">Room Code:</span>
+            <span id="displayRoomCode" class="font-pixel text-sm text-amber-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-amber-400/40">-----</span>
+            <span id="displayRoomPrivacy" class="text-[0.65rem] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">PUBLIC</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="btnCopyRoomCode" class="btn-arcade px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white border border-slate-600">
+              📋 COPY CODE
+            </button>
+            <button id="btnCopyInviteLink" class="btn-arcade px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-bold text-white">
+              🔗 INVITE LINK
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-300">Connected Fighters</span>
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+            <input id="chkFillBotsOnline" type="checkbox" class="rounded accent-indigo-500" />
+            <span>Fill empty slots with AI Bots</span>
+          </label>
+        </div>
+        <div id="onlineRosterList" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3"></div>
+
+        <div class="flex gap-2">
+          <button id="btnLaunchOnlineMatch" class="btn-arcade flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-extrabold text-xs sm:text-sm">
+            ⚔️ LAUNCH ONLINE MATCH
+          </button>
+          <button id="btnLeaveOnlineRoom" class="btn-arcade px-4 py-2.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs">
+            LEAVE
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Public Server Browser -->
+      <div class="bg-slate-950/85 border border-slate-800 rounded-xl p-3.5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">📡 Live Public Server Browser</span>
+          <button id="btnRefreshServers" class="btn-arcade px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyan-300 border border-slate-700">
+            🔄 REFRESH
+          </button>
+        </div>
+        <div id="publicServersList" class="flex flex-col gap-1.5 max-h-44 overflow-y-auto text-xs">
+          <div class="text-slate-500 italic py-3 text-center">Scanning for active servers...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 3: SKILL ARMORY / WORKFLOW FORGE & STAT UPGRADES    -->
+  <!-- ========================================================= -->
+  <div id="forgeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4">
+    <div class="relative w-full max-w-6xl max-h-[94vh] overflow-y-auto bg-slate-900 border-2 border-amber-500/60 rounded-2xl p-4 sm:p-5 shadow-2xl">
+      <button id="btnCloseForge" title="Close Armory" class="btn-arcade absolute top-3 right-3 w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white font-extrabold flex items-center justify-center border border-slate-700">
+        ✖
+      </button>
+
+      <!-- Header & Sub-Tabs -->
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pr-10">
+        <div>
+          <h2 class="font-pixel text-sm sm:text-base text-amber-300">⚒️ AETHER ARMORY & STAT FORGE</h2>
+          <p id="forgeModeBanner" class="text-xs text-slate-400">Equip skills or upgrade your fighter attributes.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="forgeFpCounter" class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-xs">12 / 12 FP Free</span>
+          <span id="forgeSpCounter" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs">0 SP</span>
+          <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-800">
+            <button id="tabBtnSkills" class="px-3 py-1 rounded-lg text-xs font-extrabold bg-amber-500 text-slate-950">⚡ SKILLS</button>
+            <button id="tabBtnStats" class="px-3 py-1 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white">📊 STATS [V]</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB A: SKILLS / WORKFLOW EDITOR -->
+      <div id="forgeSkillsTab">
+        <!-- 10 Skill Slots Strip -->
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 mb-3">
+          <div id="forgeSlotsGrid" class="flex flex-wrap items-center gap-1.5"></div>
+          <button id="btnUnlockSlot" class="btn-arcade px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">
+            🔓 UNLOCK SLOT (1 KO)
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          <!-- Left: Live 2.5D Sandbox Test Canvas -->
+          <div class="lg:col-span-4 bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex flex-col">
+            <div class="flex items-center justify-between text-xs mb-1.5">
+              <span class="font-bold text-cyan-300">🎯 Live 2.5D Skill Preview</span>
+              <button id="btnResetPreviewDummy" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[0.65rem] font-bold text-slate-300">
+                Reset Dummy
+              </button>
+            </div>
+            <canvas id="previewCanvas" class="w-full h-56 sm:h-64 rounded-lg border border-slate-800 bg-slate-900"></canvas>
+            <p class="text-[0.65rem] text-slate-400 mt-1.5 text-center">
+              Auto-casts your selected slot on a live target dummy!
+            </p>
+          </div>
+
+          <!-- Right: Mode-Specific Skill Picker (Normal) OR 3-Stage Flowchart (Anything Goes) -->
+          <div id="forgeSkillEditorPanel" class="lg:col-span-8 bg-slate-950/90 border border-slate-800 rounded-xl p-3 max-h-[60vh] overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <!-- TAB B: FIGHTER STAT UPGRADES -->
+      <div id="forgeStatsTab" class="hidden">
+        <div class="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-3">
+          <div class="text-xs text-slate-300">
+            Earn <strong class="text-emerald-300">+2 SP</strong> on Level Up and <strong class="text-emerald-300">+1 SP</strong> per KO to permanently boost your fighter!
+          </div>
+          <button id="btnRespecStats" class="btn-arcade px-3 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs">
+            ♻️ REFUND ALL SP
+          </button>
+        </div>
+        <div id="statsUpgradeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 4: VICTORY PODIUM (3RD -> 2ND -> 1ST) & NEXT MAP    -->
+  <!-- ========================================================= -->
+  <div id="podiumModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/88 backdrop-blur-md p-2 sm:p-4">
+    <div class="relative w-full max-w-4xl max-h-[94vh] overflow-y-auto bg-slate-900 border-2 border-amber-400/70 rounded-2xl p-4 sm:p-6 shadow-2xl text-center">
+      <button id="btnClosePodium" title="Close Podium" class="btn-arcade absolute top-3 right-3 w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white font-extrabold flex items-center justify-center border border-slate-700">
+        ✖
+      </button>
+
+      <h2 id="podiumTitleText" class="font-pixel text-base sm:text-xl text-amber-300 mb-1 pr-8">🏆 MATCH COMPLETE!</h2>
+      <p id="podiumSubtitleText" class="text-xs text-slate-300 mb-4">Revealing the Arena Champions...</p>
+
+      <!-- Sequential Podium Stage (2nd | 1st | 3rd layout) -->
+      <div id="podiumStageContainer" class="grid grid-cols-3 items-end gap-2 sm:gap-4 max-w-2xl mx-auto h-64 sm:h-72 px-2 pt-8 pb-2 mb-5 bg-slate-950/80 rounded-2xl border border-slate-800"></div>
+
+      <!-- Post-Match Map Picker & Map Size Adjuster -->
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-4 text-left">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <span class="text-xs font-bold text-slate-300 uppercase">🗺️ Pick Next Destructible Arena Map</span>
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-slate-400">Map Size:</span>
+            <button id="btnPodiumMapDown" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 font-bold">-0.1x</button>
+            <span id="podiumMapScaleLabel" class="font-bold text-amber-300">1.0x</span>
+            <button id="btnPodiumMapUp" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 font-bold">+0.1x</button>
+          </div>
+        </div>
+        <div id="podiumMapGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"></div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2.5">
+        <button id="btnPlayNextMatch" class="btn-arcade flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-emerald-400 text-slate-950 font-pixel text-xs sm:text-sm shadow-lg">
+          ▶ PLAY NEXT MATCH
+        </button>
+        <button id="btnPodiumToMenu" class="btn-arcade px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm border border-slate-700">
+          ⚙️ MAIN MENU
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 5: LIVE RANKINGS TABLE ([TAB])                      -->
+  <!-- ========================================================= -->
+  <div id="statsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-3">
+    <div class="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto bg-slate-900 border-2 border-slate-700 rounded-2xl p-4 sm:p-5 shadow-2xl">
+      <button id="btnCloseStats" title="Close Rankings" class="btn-arcade absolute top-3 right-3 w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white font-extrabold flex items-center justify-center border border-slate-700">
+        ✖
+      </button>
+      <h2 class="font-pixel text-sm sm:text-base text-cyan-300 mb-3 pr-8">📊 ARENA MATCH RANKINGS</h2>
+      <div class="overflow-x-auto rounded-xl border border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[0.65rem]">
+            <tr>
+              <th class="py-2 px-3">#</th>
+              <th class="py-2 px-3">Fighter</th>
+              <th class="py-2 px-3">Lvl</th>
+              <th class="py-2 px-3">KOs</th>
+              <th class="py-2 px-3">Deaths</th>
+              <th class="py-2 px-3">Damage</th>
+            </tr>
+          </thead>
+          <tbody id="rankingsTableBody" class="divide-y divide-slate-800 bg-slate-900/60"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- COMPLETE SELF-CONTAINED 2.5D PIXEL GAME ENGINE            -->
+  <!-- ========================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================
+      // 1. 16-BIT WEB AUDIO SYNTHESIZER (BIT-CRUNCH & FANFARE)
+      // =========================================================
+      const SFX = {
+        ctx: null,
+        muted: false,
+        ensure() {
+          if (this.muted) return null;
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+          return this.ctx;
+        },
+        playTone(freq, duration = 0.12, type = 'square', vol = 0.12, slideTo = null) {
+          const ctx = this.ensure();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + duration);
+          }
+          gain.gain.setValueAtTime(vol, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + duration + 0.01);
+        },
+        playCast(category = 'attack') {
+          if (category === 'time') {
+            this.playTone(620, 0.28, 'triangle', 0.14, 140);
+          } else if (category === 'shield') {
+            this.playTone(340, 0.18, 'square', 0.11, 680);
+          } else if (category === 'heal') {
+            this.playTone(440, 0.14, 'triangle', 0.13, 880);
+          } else {
+            this.playTone(290, 0.11, 'square', 0.1, 110);
+          }
+        },
+        playHit(heavy = false) {
+          this.playTone(heavy ? 130 : 190, heavy ? 0.16 : 0.09, 'sawtooth', heavy ? 0.15 : 0.1, 48);
+        },
+        playPropBreak() {
+          this.playTone(170, 0.14, 'square', 0.12, 55);
+          setTimeout(() => this.playTone(110, 0.12, 'sawtooth', 0.1, 40), 40);
+        },
+        // Retro 3-bit Sample-and-Hold Bit-Crunch Death Sound
+        playPixelDeath() {
+          const ctx = this.ensure();
+          if (!ctx) return;
+          const duration = 0.52;
+          const sampleRate = ctx.sampleRate;
+          const length = Math.floor(sampleRate * duration);
+          const buffer = ctx.createBuffer(1, length, sampleRate);
+          const data = buffer.getChannelData(0);
+
+          let holdSample = 0;
+          let holdCounter = 0;
+          let phase = 0;
+          for (let i = 0; i < length; i++) {
+            const t = i / length;
+            // Ramping sample-and-hold decimation (progressively crunchier)
+            const stepSize = Math.max(4, Math.floor(6 + t * 54));
+            if (holdCounter <= 0) {
+              const freq = 340 * Math.pow(0.14, t);
+              phase += (2 * Math.PI * freq) / sampleRate;
+              const rawWave = (Math.sin(phase) >= 0 ? 0.65 : -0.65) + (Math.random() * 2 - 1) * 0.45;
+              // 3-bit quantization (8 discrete amplitude steps)
+              const levels = 4;
+              holdSample = Math.round(rawWave * levels) / levels;
+              holdCounter = stepSize;
+            }
+            holdCounter--;
+            const env = Math.pow(1 - t, 1.35);
+            data[i] = holdSample * env * 0.24;
+          }
+
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          src.connect(ctx.destination);
+          src.start();
+        },
+        // 16-Bit Multi-Voice Victory Podium Fanfare
+        playVictoryFanfare() {
+          const notes = [
+            { f: 523.25, t: 0.00, d: 0.13 }, // C5
+            { f: 659.25, t: 0.13, d: 0.13 }, // E5
+            { f: 783.99, t: 0.26, d: 0.13 }, // G5
+            { f: 1046.5, t: 0.40, d: 0.34 }, // C6
+            { f: 783.99, t: 0.76, d: 0.14 }, // G5
+            { f: 1046.5, t: 0.92, d: 0.55 }  // C6
+          ];
+          notes.forEach(n => {
+            setTimeout(() => {
+              this.playTone(n.f, n.d, 'square', 0.13);
+              this.playTone(n.f * 0.5, n.d, 'triangle', 0.11);
+            }, n.t * 1000);
+          });
+        }
+      };
+
+      // =========================================================
+      // 2. 8 CLASSIC PIXEL-ART CHARACTERS (MATCHING SCREENSHOT)
+      // =========================================================
+      const CHARACTER_ROSTER = [
+        {
+          id: 'knight',
+          shortName: 'KNIGHT',
+          name: 'AETHER KNIGHT',
+          icon: '⚔️',
+          primary: '#38bdf8',
+          secondary: '#0284c7',
+          accent: '#facc15',
+          visor: '#e0f2fe',
+          shape: 'knight'
+        },
+        {
+          id: 'archmage',
+          shortName: 'ARCHMAGE',
+          name: 'PYRO ARCHMAGE',
+          icon: '🔥',
+          primary: '#f97316',
+          secondary: '#c2410c',
+          accent: '#facc15',
+          visor: '#fef08a',
+          shape: 'archmage'
+        },
+        {
+          id: 'ninja',
+          shortName: 'NINJA',
+          name: 'KRYPT NINJA',
+          icon: '🥷',
+          primary: '#a855f7',
+          secondary: '#6b21a8',
+          accent: '#2dd4bf',
+          visor: '#5eead4',
+          shape: 'ninja'
+        },
+        {
+          id: 'striker',
+          shortName: 'STRIKER',
+          name: 'VOLT STRIKER',
+          icon: '⚡',
+          primary: '#facc15',
+          secondary: '#ca8a04',
+          accent: '#38bdf8',
+          visor: '#38bdf8',
+          shape: 'striker'
+        },
+        {
+          id: 'brawler',
+          shortName: 'BRAWLER',
+          name: 'TITAN BRAWLER',
+          icon: '🛡️',
+          primary: '#ef4444',
+          secondary: '#991b1b',
+          accent: '#f59e0b',
+          visor: '#fca5a5',
+          shape: 'brawler'
+        },
+        {
+          id: 'valkyrie',
+          shortName: 'VALKYRIE',
+          name: 'GLACIA VALKYRIE',
+          icon: '❄️',
+          primary: '#bae6fd',
+          secondary: '#38bdf8',
+          accent: '#ffffff',
+          visor: '#ffffff',
+          shape: 'valkyrie'
+        },
+        {
+          id: 'phantom',
+          shortName: 'PHANTOM',
+          name: 'VEXEL PHANTOM',
+          icon: '👁️',
+          primary: '#818cf8',
+          secondary: '#4338ca',
+          accent: '#f43f5e',
+          visor: '#fda4af',
+          shape: 'phantom'
+        },
+        {
+          id: 'warden',
+          shortName: 'WARDEN',
+          name: 'CHRONO WARDEN',
+          icon: '⏳',
+          primary: '#34d399',
+          secondary: '#059669',
+          accent: '#fde047',
+          visor: '#fef08a',
+          shape: 'warden'
+        }
+      ];
+
+      const SPRITE_CACHE = {};
+
+      function buildPixelCharacterCanvas(charDef, flashStage = 0) {
+        const c = document.createElement('canvas');
+        c.width = 24;
+        c.height = 28;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        let pCol = charDef.primary;
+        let sCol = charDef.secondary;
+        let aCol = charDef.accent;
+        let vCol = charDef.visor;
+        const outline = '#090d16';
+
+        if (flashStage === 1) {
+          pCol = '#ffffff'; sCol = '#e2e8f0'; aCol = '#ffffff'; vCol = '#ffffff';
+        } else if (flashStage === 2) {
+          pCol = '#fb923c'; sCol = '#ea580c'; aCol = '#fef08a'; vCol = '#ffffff';
+        } else if (flashStage === 3) {
+          pCol = '#ef4444'; sCol = '#991b1b'; aCol = '#fca5a5'; vCol = '#ffffff';
+        }
+
+        const px = (x, y, w, h, col) => {
+          ctx.fillStyle = col;
+          ctx.fillRect(x, y, w, h);
+        };
+
+        // Distinct classic pixel-art silhouettes matching the 8 roster designs
+        if (charDef.shape === 'knight') {
+          px(9, 2, 6, 2, aCol); // Golden crest
+          px(8, 4, 8, 7, outline);
+          px(9, 5, 6, 5, pCol);
+          px(10, 6, 4, 2, vCol); // Visor
+          px(6, 11, 12, 8, outline);
+          px(7, 12, 10, 6, pCol);
+          px(9, 14, 6, 2, aCol); // Belt
+          px(8, 19, 3, 6, outline); px(9, 19, 2, 5, sCol);
+          px(13, 19, 3, 6, outline); px(13, 19, 2, 5, sCol);
+        } else if (charDef.shape === 'archmage') {
+          px(10, 1, 4, 2, pCol); // Pointed hat tip
+          px(8, 3, 8, 3, pCol);
+          px(6, 6, 12, 2, sCol); // Hat brim
+          px(8, 8, 8, 4, outline); // Shadowed face
+          px(10, 9, 1, 2, vCol); px(13, 9, 1, 2, vCol); // Glowing eyes
+          px(6, 12, 12, 9, outline);
+          px(7, 13, 10, 7, pCol);
+          px(10, 15, 4, 3, aCol); // Gold robe emblem
+          px(8, 21, 3, 4, sCol); px(13, 21, 3, 4, sCol);
+        } else if (charDef.shape === 'ninja') {
+          px(8, 4, 8, 7, outline);
+          px(9, 5, 6, 5, pCol);
+          px(9, 7, 6, 2, vCol); // Cyan eye band
+          px(4, 9, 4, 2, aCol); px(3, 10, 3, 2, aCol); // Flowing scarf
+          px(7, 11, 10, 8, outline);
+          px(8, 12, 8, 6, pCol);
+          px(9, 14, 6, 2, aCol);
+          px(7, 19, 3, 6, pCol); px(14, 19, 3, 6, pCol);
+        } else if (charDef.shape === 'striker') {
+          px(7, 2, 2, 3, aCol); px(15, 2, 2, 3, aCol); // Lightning horns
+          px(8, 4, 8, 7, outline);
+          px(9, 5, 6, 5, pCol);
+          px(10, 6, 4, 3, vCol); // Blue visor
+          px(6, 11, 12, 8, outline);
+          px(7, 12, 10, 6, pCol);
+          px(11, 13, 2, 4, aCol); // Bolt chest
+          px(8, 19, 3, 6, pCol); px(13, 19, 3, 6, pCol);
+        } else if (charDef.shape === 'brawler') {
+          px(6, 3, 2, 3, aCol); px(16, 3, 2, 3, aCol); // Side horns
+          px(8, 4, 8, 7, outline);
+          px(9, 5, 6, 5, pCol);
+          px(10, 7, 4, 1, vCol); // Narrow brow slit
+          px(5, 11, 14, 8, outline); // Broad shoulders
+          px(6, 12, 12, 6, pCol);
+          px(9, 13, 6, 3, aCol);
+          px(7, 19, 4, 6, sCol); px(13, 19, 4, 6, sCol);
+        } else if (charDef.shape === 'valkyrie') {
+          px(6, 2, 2, 4, aCol); px(16, 2, 2, 4, aCol); // White wings
+          px(8, 4, 8, 7, outline);
+          px(9, 5, 6, 5, pCol);
+          px(10, 6, 4, 2, vCol);
+          px(6, 11, 12, 8, outline);
+          px(7, 12, 10, 6, pCol);
+          px(9, 14, 6, 3, aCol);
+          px(8, 19, 3, 6, sCol); px(13, 19, 3, 6, sCol);
+        } else if (charDef.shape === 'phantom') {
+          px(8, 3, 8, 7, outline);
+          px(9, 4, 6, 5, pCol);
+          px(11, 6, 2, 2, aCol); // Crimson hood jewel
+          px(6, 10, 12, 10, outline); // Floating cloak
+          px(7, 11, 10, 8, pCol);
+          px(10, 13, 4, 4, aCol); // Glowing core
+          px(8, 20, 2, 4, sCol); px(14, 20, 2, 4, sCol);
+        } else {
+          // Chrono Warden
+          px(8, 1, 8, 2, aCol); // Floating golden halo
+          px(8, 4, 8, 7, outline);
+          px(9, 5, 6, 5, pCol);
+          px(10, 6, 4, 2, vCol);
+          px(6, 11, 12, 8, outline);
+          px(7, 12, 10, 6, pCol);
+          px(10, 13, 4, 4, aCol); // Hourglass emblem
+          px(8, 19, 3, 6, sCol); px(13, 19, 3, 6, sCol);
+        }
+        return c;
+      }
+
+      function initSpriteCache() {
+        CHARACTER_ROSTER.forEach(ch => {
+          SPRITE_CACHE[ch.id] = [
+            buildPixelCharacterCanvas(ch, 0),
+            buildPixelCharacterCanvas(ch, 1),
+            buildPixelCharacterCanvas(ch, 2),
+            buildPixelCharacterCanvas(ch, 3)
+          ];
+        });
+      }
+
+      // =========================================================
+      // 3. DESTRUCTIBLE INTERACTIVE MAPS (6 MAPS + GIMMICKS)
+      // =========================================================
+      const ARENA_MAPS = [
+        {
+          id: 'metro',
+          name: 'Metro Crossing',
+          icon: '🚗',
+          gimmick: 'Speeding Cars & Burst Hydrants',
+          floorA: '#1e293b',
+          floorB: '#172033',
+          trim: '#38bdf8',
+          gravity: 980,
+          friction: 0.86,
+          propTypes: [
+            { name: 'Parked Sedan', color: '#ef4444', top: '#fca5a5', w: 58, h: 34, z: 26, hp: 90, kind: 'car' },
+            { name: 'Fire Hydrant', color: '#dc2626', top: '#fde047', w: 22, h: 22, z: 24, hp: 45, kind: 'hydrant' },
+            { name: 'News Kiosk', color: '#0284c7', top: '#7dd3fc', w: 42, h: 42, z: 34, hp: 75, kind: 'crate' }
+          ]
+        },
+        {
+          id: 'foundry',
+          name: 'Magma Foundry',
+          icon: '🌋',
+          gimmick: 'Lava Vents & Explosive Slag Vats',
+          floorA: '#291d1e',
+          floorB: '#1f1516',
+          trim: '#f97316',
+          gravity: 980,
+          friction: 0.86,
+          propTypes: [
+            { name: 'Slag Vat', color: '#ea580c', top: '#fde047', w: 34, h: 34, z: 32, hp: 55, kind: 'explosive' },
+            { name: 'Steel Anvil', color: '#64748b', top: '#cbd5e1', w: 46, h: 30, z: 24, hp: 110, kind: 'crate' }
+          ]
+        },
+        {
+          id: 'cyber',
+          name: 'Cyber Rooftop',
+          icon: '🌆',
+          gimmick: 'Sky Jump Pads & XP Server Racks',
+          floorA: '#161b33',
+          floorB: '#101426',
+          trim: '#a855f7',
+          gravity: 940,
+          friction: 0.87,
+          propTypes: [
+            { name: 'Server Rack', color: '#6366f1', top: '#38bdf8', w: 36, h: 28, z: 42, hp: 65, kind: 'xp' },
+            { name: 'Holo Billboard', color: '#ec4899', top: '#fbcfe8', w: 54, h: 22, z: 38, hp: 70, kind: 'crate' }
+          ]
+        },
+        {
+          id: 'glacier',
+          name: 'Glacier Citadel',
+          icon: '❄️',
+          gimmick: 'Slick Ice Physics & Blizzard Gales',
+          floorA: '#162d3d',
+          floorB: '#112330',
+          trim: '#7dd3fc',
+          gravity: 980,
+          friction: 0.95,
+          propTypes: [
+            { name: 'Frost Obelisk', color: '#38bdf8', top: '#e0f2fe', w: 32, h: 32, z: 44, hp: 70, kind: 'frost' },
+            { name: 'Ice Barricade', color: '#0ea5e9', top: '#bae6fd', w: 52, h: 24, z: 26, hp: 60, kind: 'crate' }
+          ]
+        },
+        {
+          id: 'ruins',
+          name: 'Sandstorm Ruins',
+          icon: '🏜️',
+          gimmick: 'Rolling Boulders & Healing Urns',
+          floorA: '#33271a',
+          floorB: '#261d13',
+          trim: '#eab308',
+          gravity: 980,
+          friction: 0.85,
+          propTypes: [
+            { name: 'Aether Urn', color: '#10b981', top: '#a7f3d0', w: 24, h: 24, z: 26, hp: 40, kind: 'heal' },
+            { name: 'Sandstone Pillar', color: '#ca8a04', top: '#fef08a', w: 38, h: 38, z: 46, hp: 95, kind: 'crate' }
+          ]
+        },
+        {
+          id: 'orbital',
+          name: 'Orbital Station',
+          icon: '🛰️',
+          gimmick: 'Low Gravity & Twin Warp Portals',
+          floorA: '#181c2e',
+          floorB: '#121524',
+          trim: '#2dd4bf',
+          gravity: 640,
+          friction: 0.89,
+          propTypes: [
+            { name: 'Plasma Cell', color: '#14b8a6', top: '#99f6e4', w: 30, h: 30, z: 32, hp: 50, kind: 'explosive' },
+            { name: 'Cargo Pod', color: '#475569', top: '#94a3b8', w: 48, h: 34, z: 30, hp: 85, kind: 'crate' }
+          ]
+        }
+      ];
+
+      // =========================================================
+      // 4. 35 SKILLS + 15 TRIGGERS + 15 IMPACTS
+      // =========================================================
+      const BASE_SKILLS = [
+        // Starter 0 FP Skills
+        { id: 'punch', name: 'Power Punch', icon: '👊', fp: 0, cat: 'attack', cd: 0.55, dmg: 24, kb: 260, speed: 520, range: 95, radius: 18, color: '#38bdf8', kind: 'melee', desc: 'Fast close-range gauntlet strike.' },
+        { id: 'fireball', name: 'Fireball', icon: '🔥', fp: 0, cat: 'attack', cd: 0.85, dmg: 28, kb: 220, speed: 560, range: 520, radius: 14, color: '#f97316', kind: 'proj', desc: 'Classic blazing bolt with crisp knockback.' },
+        { id: 'grapple', name: 'Grapple Hook', icon: '🪝', fp: 0, cat: 'utility', cd: 1.4, dmg: 16, kb: -380, speed: 780, range: 460, radius: 13, color: '#94a3b8', kind: 'grapple', desc: 'Fires a segmented pixel claw that pulls foes in.' },
+
+        // Time Slow / Time Stop Skills
+        { id: 'timestop', name: 'Chrono Stasis', icon: '⏸️', fp: 4, cat: 'time', cd: 6.5, dmg: 18, kb: 260, speed: 0, range: 220, radius: 210, color: '#fde047', kind: 'timestop', desc: 'Stops time in a golden dome! Damage dealt stacks and bursts when time resumes.' },
+        { id: 'timeslow', name: 'Time Dilation', icon: '⏳', fp: 3, cat: 'time', cd: 4.5, dmg: 14, kb: 80, speed: 320, range: 360, radius: 150, color: '#fbbf24', kind: 'timeslow', desc: 'Deploys a temporal field slowing enemy fighters and projectiles by 70%.' },
+
+        // Block / Parry / Reflect / Cancel Skills
+        { id: 'aegis', name: 'Aegis Parry Wall', icon: '🛡️', fp: 2, cat: 'shield', cd: 3.2, dmg: 12, kb: 320, speed: 0, range: 60, radius: 65, color: '#38bdf8', kind: 'parry', desc: 'Projects an energy barrier that blocks and reflects projectiles.' },
+        { id: 'mirror', name: 'Mirror Prism Ward', icon: '🔮', fp: 3, cat: 'shield', cd: 4.8, dmg: 15, kb: 280, speed: 0, range: 0, radius: 75, color: '#e879f9', kind: 'mirror', desc: '360° prism dome that bounces enemy projectiles back at 1.3x speed.' },
+        { id: 'emp_cancel', name: 'EMP Nullifier', icon: '🚫', fp: 3, cat: 'shield', cd: 5.0, dmg: 22, kb: 240, speed: 0, range: 230, radius: 220, color: '#f43f5e', kind: 'cancel', desc: 'Erases enemy projectiles, cancels shields, and silences enemy skills for 2.5s.' },
+
+        // Healing & Buff Skills
+        { id: 'vital_mend', name: 'Vital Aether Mend', icon: '💚', fp: 3, cat: 'heal', cd: 5.5, dmg: 0, kb: 120, speed: 0, range: 0, radius: 95, color: '#10b981', kind: 'heal', desc: 'Instantly heals 55 HP, cleanses debuffs, and grants +6 HP/s regen.' },
+        { id: 'overdrive', name: 'Titan Overdrive', icon: '👑', fp: 3, cat: 'heal', cd: 6.0, dmg: 15, kb: 250, speed: 0, range: 0, radius: 100, color: '#facc15', kind: 'buff', desc: 'Surges ATK (+30%), Speed (+25%), and Armor (+20%) for 4.5s.' },
+        { id: 'sanctuary', name: 'Sanctuary Totem', icon: '⛩️', fp: 2, cat: 'heal', cd: 5.0, dmg: 0, kb: 60, speed: 0, range: 120, radius: 125, color: '#34d399', kind: 'sanctuary', desc: 'Places a healing sanctuary zone on the arena floor for 4.5s.' },
+
+        // Additional 24 Diverse Combat Skills
+        { id: 'shockwave', name: 'Shockwave Slam', icon: '💥', fp: 2, cat: 'attack', cd: 1.8, dmg: 34, kb: 360, speed: 0, range: 0, radius: 135, color: '#f59e0b', kind: 'nova', desc: 'Ground slam unleashing an expanding 2.5D shock ring.' },
+        { id: 'volley', name: 'Arcane Volley', icon: '✨', fp: 2, cat: 'attack', cd: 1.3, dmg: 16, kb: 140, speed: 620, range: 480, radius: 10, color: '#c084fc', kind: 'volley', desc: 'Fires a 3-bolt fan of arcane missiles.' },
+        { id: 'frost_lance', name: 'Frost Lance', icon: '❄️', fp: 2, cat: 'attack', cd: 1.2, dmg: 26, kb: 200, speed: 680, range: 560, radius: 12, color: '#7dd3fc', kind: 'frost', desc: 'Piercing ice spear that chills and slows enemies.' },
+        { id: 'shadow_dash', name: 'Shadow Dash', icon: '👤', fp: 2, cat: 'utility', cd: 2.1, dmg: 28, kb: 290, speed: 950, range: 240, radius: 34, color: '#a855f7', kind: 'dash', desc: 'Teleports forward in a violet blur, slashing foes in path.' },
+        { id: 'meteor', name: 'Meteor Strike', icon: '☄️', fp: 3, cat: 'attack', cd: 2.8, dmg: 48, kb: 420, speed: 440, range: 440, radius: 95, color: '#ef4444', kind: 'meteor', desc: 'Calls down a blazing meteor that detonates on impact.' },
+        { id: 'lightning', name: 'Chain Lightning', icon: '⚡', fp: 3, cat: 'attack', cd: 2.0, dmg: 32, kb: 210, speed: 840, range: 500, radius: 14, color: '#fde047', kind: 'proj', desc: 'Ultra-fast bolt of high-voltage plasma.' },
+        { id: 'venom', name: 'Venom Cloud', icon: '☠️', fp: 2, cat: 'attack', cd: 2.6, dmg: 14, kb: 90, speed: 340, range: 360, radius: 115, color: '#84cc16', kind: 'cloud', desc: 'Releases a lingering toxic cloud that damages over time.' },
+        { id: 'railgun', name: 'Aether Railgun', icon: '🔫', fp: 3, cat: 'attack', cd: 2.4, dmg: 46, kb: 410, speed: 1050, range: 720, radius: 10, color: '#22d3ee', kind: 'proj', desc: 'Hyper-velocity rail slug with massive knockback.' },
+        { id: 'boomerang', name: 'Glaive Boomerang', icon: '🪃', fp: 2, cat: 'attack', cd: 1.6, dmg: 24, kb: 210, speed: 540, range: 440, radius: 16, color: '#2dd4bf', kind: 'boomerang', desc: 'Spinning pixel glaive that curves back to you.' },
+        { id: 'grav_well', name: 'Gravity Well', icon: '🌀', fp: 3, cat: 'utility', cd: 3.8, dmg: 16, kb: -320, speed: 360, range: 380, radius: 140, color: '#818cf8', kind: 'grav', desc: 'Singularity orb that pulls nearby fighters into its core.' },
+        { id: 'blade_storm', name: 'Blade Storm', icon: '🌪️', fp: 3, cat: 'attack', cd: 2.9, dmg: 22, kb: 260, speed: 0, range: 0, radius: 120, color: '#e2e8f0', kind: 'nova', desc: 'Whirlwind of razor pixel blades around your fighter.' },
+        { id: 'cluster', name: 'Cluster Bomb', icon: '💣', fp: 3, cat: 'attack', cd: 2.5, dmg: 30, kb: 310, speed: 460, range: 420, radius: 16, color: '#fb7185', kind: 'cluster', desc: 'Splits into 4 shrapnel bombs upon detonation.' },
+        { id: 'solar_flare', name: 'Solar Flare', icon: '☀️', fp: 4, cat: 'attack', cd: 3.4, dmg: 52, kb: 450, speed: 480, range: 460, radius: 26, color: '#facc15', kind: 'proj', desc: 'Colossal sun orb that obliterates destructible cover.' },
+        { id: 'seismic', name: 'Seismic Eruption', icon: '🪨', fp: 2, cat: 'attack', cd: 1.9, dmg: 32, kb: 340, speed: 520, range: 400, radius: 20, color: '#d97706', kind: 'proj', desc: 'Hurls a jagged boulder across the arena floor.' },
+        { id: 'plasma_orb', name: 'Plasma Orb', icon: '🟣', fp: 2, cat: 'attack', cd: 1.5, dmg: 29, kb: 250, speed: 470, range: 500, radius: 18, color: '#d946ef', kind: 'proj', desc: 'Slow-drifting unstable sphere of magenta plasma.' },
+        { id: 'wind_gust', name: 'Gale Repulsor', icon: '💨', fp: 1, cat: 'utility', cd: 1.4, dmg: 12, kb: 480, speed: 700, range: 340, radius: 26, color: '#bae6fd', kind: 'proj', desc: 'Low-damage wind blast with huge ring-out push.' },
+        { id: 'vamp_fang', name: 'Vampiric Bite', icon: '🧛', fp: 2, cat: 'heal', cd: 2.0, dmg: 26, kb: 180, speed: 560, range: 140, radius: 22, color: '#f43f5e', kind: 'lifesteal', desc: 'Close-range lunge that heals you for 75% of damage dealt.' },
+        { id: 'star_shuriken', name: '5-Star Shuriken', icon: '✴️', fp: 3, cat: 'attack', cd: 1.7, dmg: 15, kb: 150, speed: 660, range: 480, radius: 9, color: '#5eead4', kind: 'nova_shot', desc: 'Fires 5 ninja stars in a wide spread.' },
+        { id: 'magma_wave', name: 'Magma Surge', icon: '🌋', fp: 3, cat: 'attack', cd: 2.3, dmg: 38, kb: 330, speed: 500, range: 430, radius: 22, color: '#ea580c', kind: 'proj', desc: 'Molten wave that melts through obstacles.' },
+        { id: 'chrono_dash', name: 'Phase Blink', icon: '⏩', fp: 2, cat: 'utility', cd: 2.2, dmg: 14, kb: 180, speed: 1100, range: 280, radius: 28, color: '#38bdf8', kind: 'dash', desc: 'Instant warp blink with brief invulnerability.' },
+        { id: 'thorn_burst', name: 'Thorn Barrage', icon: '🌵', fp: 2, cat: 'attack', cd: 1.4, dmg: 18, kb: 170, speed: 610, range: 460, radius: 11, color: '#4ade80', kind: 'volley', desc: 'Fires a trio of emerald briar spikes.' },
+        { id: 'titan_upper', name: 'Titan Uppercut', icon: '🥊', fp: 2, cat: 'attack', cd: 1.3, dmg: 36, kb: 410, speed: 520, range: 105, radius: 24, color: '#ef4444', kind: 'melee', desc: 'Heavy uppercut that launches enemies skyward.' },
+        { id: 'arc_pulse', name: 'Arc Pulse Ring', icon: '💠', fp: 2, cat: 'attack', cd: 1.9, dmg: 28, kb: 290, speed: 0, range: 0, radius: 145, color: '#38bdf8', kind: 'nova', desc: 'Emits an electric pulse ring around your body.' },
+        { id: 'soul_spear', name: 'Soul Spear', icon: '🔱', fp: 3, cat: 'attack', cd: 2.1, dmg: 40, kb: 320, speed: 740, range: 580, radius: 13, color: '#818cf8', kind: 'proj', desc: 'Spectral trident that pierces targets.' }
+      ];
+
+      // Stage 1 Triggers (Anything Goes Flowchart)
+      const STAGE1_TRIGGERS = [
+        { id: 'single', name: 'Single Cast', icon: '🎯', mult: 1, desc: 'Standard single execution.' },
+        { id: 'double_tap', name: 'Double Tap', icon: '✌️', mult: 2, desc: 'Fires twice in rapid succession.' },
+        { id: 'triple_fan', name: 'Triple Fan', icon: '🔱', mult: 3, desc: '3-way spread volley.' },
+        { id: 'penta_star', name: '5-Way Star', icon: '⭐', mult: 5, desc: '5-directional star burst.' },
+        { id: 'nova_360', name: '360° Nova Ring', icon: '💥', mult: 8, desc: '8-way circular ring.' },
+        { id: 'dash_cast', name: 'Dash + Cast', icon: '💨', mult: 1, dash: true, desc: 'Lunges forward as you fire.' },
+        { id: 'leap_cast', name: 'Sky Leap + Cast', icon: '🦘', mult: 1, leap: true, desc: 'Launches upward while casting.' },
+        { id: 'siphon_cast', name: 'Siphon Mend + Cast', icon: '💚', mult: 1, heal: 18, desc: 'Heals +18 HP every cast.' },
+        { id: 'dilate_cast', name: 'Time Dilate + Cast', icon: '⏳', mult: 1, slowZone: true, desc: 'Spawns a time-slow bubble on cast.' },
+        { id: 'mirror_cast', name: 'Prism Guard + Cast', icon: '🔮', mult: 1, shield: true, desc: 'Grants a brief projectile shield.' },
+        { id: 'backstep_cast', name: 'Backflip Shot', icon: '↩️', mult: 2, backstep: true, desc: 'Leaps backward while firing 2 shots.' },
+        { id: 'spiral_burst', name: 'Spiral Barrage', icon: '🌀', mult: 6, desc: '6-shot rotating spiral.' },
+        { id: 'overcharge', name: 'Overcharged Shot', icon: '⚡', mult: 1, dmgMult: 1.45, desc: '+45% base damage boost.' },
+        { id: 'rapid_barrage', name: 'Gatling Burst', icon: '🔫', mult: 4, desc: '4-round rapid burst.' },
+        { id: 'quake_cast', name: 'Earthshaker Cast', icon: '🌋', mult: 1, shock: true, desc: 'Adds a local shockwave on cast.' }
+      ];
+
+      // Stage 3 On-Hit Impacts (Anything Goes Flowchart)
+      const STAGE3_IMPACTS = [
+        { id: 'none', name: 'Clean Impact', icon: '⚪', desc: 'Standard hit reaction.' },
+        { id: 'explode', name: 'Mega Explosion', icon: '💥', desc: 'Detonates an AoE blast on hit.' },
+        { id: 'stasis_lock', name: 'Temporal Stasis Lock', icon: '⏸️', desc: 'Freezes hit target in time for 1.4s.' },
+        { id: 'silence_jam', name: 'Ability Jam / Silence', icon: '🚫', desc: 'Silences target abilities for 2.2s.' },
+        { id: 'buff_siphon', name: 'Buff & Shield Siphon', icon: '🧲', desc: 'Steals buffs/shields & heals +20 HP.' },
+        { id: 'frost_freeze', name: 'Cryo Shatter', icon: '❄️', desc: 'Chills target speed by 65%.' },
+        { id: 'meteor_drop', name: 'Orbital Meteor Drop', icon: '☄️', desc: 'Drops a secondary meteor on hit.' },
+        { id: 'chain_arc', name: 'Chain Lightning Arc', icon: '⚡', desc: 'Zaps nearby enemies within 160px.' },
+        { id: 'vamp_drain', name: 'Soul Drain', icon: '🧛', desc: 'Restores +22 HP to attacker.' },
+        { id: 'black_hole', name: 'Singularity Pull', icon: '🌀', desc: 'Implodes nearby foes toward impact.' },
+        { id: 'venom_burst', name: 'Toxic Spores', icon: '☠️', desc: 'Leaves a poison cloud on hit.' },
+        { id: 'sky_launch', name: 'Skyward Launch', icon: '🚀', desc: 'Launches hit target high into the air.' },
+        { id: 'cluster_split', name: 'Shrapnel Split', icon: '💣', desc: 'Spawns 3 mini bombs on impact.' },
+        { id: 'shield_break', name: 'Armor Shatter', icon: '🔨', desc: 'Deals +50% bonus damage & strips shields.' },
+        { id: 'sanctuary_bloom', name: 'Healing Bloom', icon: '🌸', desc: 'Spawns a healing zone on impact.' }
+      ];
+
+      // =========================================================
+      // 5. CORE GAME STATE & ARENA GEOMETRY
+      // =========================================================
+      const GAME = {
+        mode: 'normal', // 'normal' | 'anything'
+        state: 'menu',  // 'menu' | 'playing' | 'podium'
+        selectedCharId: 'knight',
+        selectedMapId: 'metro',
+        arenaSize: 4,
+        botDiff: 'fighter',
+        matchDuration: 150,
+        timeLeft: 150,
+        uiScale: 1.0,
+        mapScale: 1.0,
+        followCam: false,
+        cam: { x: 0, y: 0, zoom: 1 },
+        draftSlot: 0,
+        activeForgeTab: 'skills',
+        keys: {},
+        mouse: { x: 0, y: 0, worldX: 0, worldY: 0, down: false },
+        touch: {
+          enabled: false,
+          joyId: null,
+          joyOriginX: 0,
+          joyOriginY: 0,
+          moveX: 0,
+          moveY: 0,
+          casting: false
+        }
+      };
+
+      const WORLD = {
+        fighters: [],
+        projectiles: [],
+        zones: [],
+        props: [],
+        hazards: [],
+        potions: [],
+        particles: [],
+        floatingTexts: [],
+        killFeed: [],
+        potionTimer: 12,
+        hazardTimer: 4
+      };
+
+      const PREVIEW_WORLD = {
+        isPreview: true,
+        fighters: [],
+        projectiles: [],
+        zones: [],
+        props: [],
+        hazards: [],
+        potions: [],
+        particles: [],
+        floatingTexts: [],
+        killFeed: []
+      };
+
+      function getArenaBounds(mapScale = GAME.mapScale) {
+        const halfW = Math.round(520 * mapScale);
+        const halfH = Math.round(360 * mapScale);
+        return { halfW, halfH };
+      }
+
+      // 2.5D Isometric Projection
+      function worldToScreen(wx, wy, wz, cam, canvasW, canvasH) {
+        const isoY = 0.66;
+        const sx = (wx - cam.x) * cam.zoom + canvasW * 0.5;
+        const sy = ((wy - cam.y) * isoY - wz) * cam.zoom + canvasH * 0.52;
+        return { x: sx, y: sy };
+      }
+
+      function screenToWorld(sx, sy, cam, canvasW, canvasH) {
+        const isoY = 0.66;
+        const wx = (sx - canvasW * 0.5) / cam.zoom + cam.x;
+        const wy = (sy - canvasH * 0.52) / (cam.zoom * isoY) + cam.y;
+        return { x: wx, y: wy };
+      }
+
+      // =========================================================
+      // 6. WORKFLOWS, FORGE POINTS & STAT UPGRADES
+      // =========================================================
+      function createDefaultWorkflow(skillId = 'punch') {
+        return {
+          triggerId: 'single',
+          skillId,
+          impactId: 'none',
+          sizeMult: 1.0,
+          powerMult: 1.0,
+          speedMult: 1.0
+        };
+      }
+
+      function getSkillById(id) {
+        return BASE_SKILLS.find(s => s.id === id) || BASE_SKILLS[0];
+      }
+
+      function calculateSlotCost(wf) {
+        if (!wf) return 0;
+        const sk = getSkillById(wf.skillId);
+        if (GAME.mode === 'normal') {
+          return sk.fp;
+        }
+        let cost = sk.fp;
+        if (wf.triggerId !== 'single') cost += 1;
+        if (wf.impactId !== 'none') cost += 1;
+        if (wf.sizeMult > 1.2) cost += 1;
+        if (wf.powerMult > 1.2) cost += 1;
+        return cost;
+      }
+
+      function getTotalForgePoints() {
+        return GAME.mode === 'anything' ? 999 : 12;
+      }
+
+      function getUsedForgePoints(fighter) {
+        if (!fighter) return 0;
+        let sum = 0;
+        for (let i = 0; i < fighter.unlockedSlots; i++) {
+          sum += calculateSlotCost(fighter.slots[i]);
+        }
+        return sum;
+      }
+
+      function enforceForgeBudget(fighter) {
+        if (!fighter || GAME.mode === 'anything') return;
+        const maxFp = getTotalForgePoints();
+        while (getUsedForgePoints(fighter) > maxFp) {
+          let downgraded = false;
+          for (let i = fighter.unlockedSlots - 1; i >= 0; i--) {
+            const wf = fighter.slots[i];
+            if (wf && getSkillById(wf.skillId).fp > 0) {
+              fighter.slots[i] = createDefaultWorkflow('punch');
+              downgraded = true;
+              break;
+            }
+          }
+          if (!downgraded) break;
+        }
+      }
+
+      const STAT_DEFS = [
+        { id: 'hp', name: 'Max Health', icon: '❤️', desc: '+35 Max HP per level', max: 10 },
+        { id: 'atk', name: 'Attack Power', icon: '⚔️', desc: '+10% Skill Damage per level', max: 10 },
+        { id: 'cd', name: 'Cooldown Haste', icon: '⏱️', desc: '-7% Skill Cooldown per level', max: 10 },
+        { id: 'spd', name: 'Agility & Jump', icon: '👟', desc: '+7% Move & Jump Speed per level', max: 10 },
+        { id: 'kb', name: 'Knockback Force', icon: '💥', desc: '+10% Impact Knockback per level', max: 10 },
+        { id: 'arm', name: 'Armor & Regen', icon: '🛡️', desc: '+5% Damage Reduction & +1.5 HP/s', max: 10 }
+      ];
+
+      function recalcFighterStats(f) {
+        const hpRatio = f.maxHp > 0 ? f.hp / f.maxHp : 1;
+        f.maxHp = 200 + f.stats.hp * 35;
+        f.hp = Math.min(f.maxHp, Math.max(1, Math.round(f.maxHp * hpRatio)));
+        f.atkMult = 1 + f.stats.atk * 0.10;
+        f.cdMult = Math.max(0.25, 1 - f.stats.cd * 0.07);
+        f.moveSpeed = 240 * (1 + f.stats.spd * 0.07);
+        f.jumpPower = 430 * (1 + f.stats.spd * 0.05);
+        f.kbMult = 1 + f.stats.kb * 0.10;
+        f.armorDR = Math.min(0.65, f.stats.arm * 0.05);
+        f.hpRegen = f.stats.arm * 1.5;
+      }
+
+      // =========================================================
+      // 7. FIGHTER FACTORY & AI BOT PROFILES
+      // =========================================================
+      const BOT_PROFILES = {
+        rookie:    { reaction: 1.35, aimJitter: 0.45, aggro: 0.45, skillTier: 1 },
+        fighter:   { reaction: 0.85, aimJitter: 0.25, aggro: 0.68, skillTier: 2 },
+        veteran:   { reaction: 0.52, aimJitter: 0.14, aggro: 0.82, skillTier: 3 },
+        master:    { reaction: 0.30, aimJitter: 0.07, aggro: 0.92, skillTier: 4 },
+        nightmare: { reaction: 0.14, aimJitter: 0.02, aggro: 1.00, skillTier: 4 }
+      };
+
+      const BOT_NAMES = [
+        'KAI_ZERO', 'NOVA_X', 'REX_99', 'LYRA_V', 'ZEPHYR', 'ORION',
+        'BLAZE', 'FROST', 'VIPER', 'TITAN', 'ECHO', 'PULSE', 'CIPHER', 'VALKYR', 'DRIFT'
+      ];
+
+      function createFighter({ id, name, charId, isHuman = false, isRemote = false, peerId = null, x = 0, y = 0 }) {
+        const charDef = CHARACTER_ROSTER.find(c => c.id === charId) || CHARACTER_ROSTER[0];
+        const slots = [
+          createDefaultWorkflow('punch'),
+          createDefaultWorkflow('fireball'),
+          createDefaultWorkflow('grapple'),
+          createDefaultWorkflow('shockwave'),
+          createDefaultWorkflow('aegis'),
+          createDefaultWorkflow('vital_mend'),
+          createDefaultWorkflow('timestop'),
+          createDefaultWorkflow('volley'),
+          createDefaultWorkflow('meteor'),
+          createDefaultWorkflow('overdrive')
+        ];
+
+        // Give bots varied loadouts based on difficulty
+        if (!isHuman && !isRemote) {
+          const pool = BASE_SKILLS.filter(s => s.fp <= (BOT_PROFILES[GAME.botDiff]?.skillTier || 2));
+          if (pool.length > 0) {
+            slots[1] = createDefaultWorkflow(pool[Math.floor(Math.random() * pool.length)].id);
+            slots[2] = createDefaultWorkflow(pool[Math.floor(Math.random() * pool.length)].id);
+          }
+        }
+
+        const f = {
+          id,
+          name,
+          charId: charDef.id,
+          charDef,
+          isHuman,
+          isRemote,
+          peerId,
+          wx: x,
+          wy: y,
+          wz: 0,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          radius: 18,
+          facing: 1,
+          aimAngle: 0,
+          punchAnim: 0,
+          squashX: 1,
+          squashY: 1,
+          flashTimer: 0,
+          hp: 200,
+          maxHp: 200,
+          kos: 0,
+          deaths: 0,
+          damageDealt: 0,
+          xp: 0,
+          level: 1,
+          sp: 0,
+          stats: { hp: 0, atk: 0, cd: 0, spd: 0, kb: 0, arm: 0 },
+          unlockedSlots: 3,
+          activeSlot: 0,
+          slots,
+          cooldowns: new Array(10).fill(0),
+          // Status Effects
+          stasisTimer: 0,
+          stasisStoredDmg: 0,
+          stasisStoredVx: 0,
+          stasisStoredVy: 0,
+          stasisStoredVz: 0,
+          chillTimer: 0,
+          silenceTimer: 0,
+          shieldTimer: 0,
+          mirrorTimer: 0,
+          overdriveTimer: 0,
+          regenTimer: 0,
+          respawnTimer: 0,
+          aiTimer: Math.random() * 0.5,
+          aiMoveX: 0,
+          aiMoveY: 0,
+          lastHitBy: null
+        };
+        recalcFighterStats(f);
+        enforceForgeBudget(f);
+        return f;
+      }
+
+      // =========================================================
+      // 8. MAP LOADING & DESTRUCTIBLE ENVIRONMENT PROPS
+      // =========================================================
+      function loadArenaMap(world, mapId, mapScale = GAME.mapScale) {
+        const mapDef = ARENA_MAPS.find(m => m.id === mapId) || ARENA_MAPS[0];
+        const { halfW, halfH } = getArenaBounds(mapScale);
+        world.props = [];
+        world.hazards = [];
+        world.zones = [];
+        world.projectiles = [];
+        world.potions = [];
+
+        const propCount = world.isPreview ? 2 : Math.max(6, Math.round(10 * mapScale));
+        for (let i = 0; i < propCount; i++) {
+          const pType = mapDef.propTypes[i % mapDef.propTypes.length];
+          const px = world.isPreview ? (i === 0 ? 90 : -95) : (Math.random() * 2 - 1) * (halfW - 90);
+          const py = world.isPreview ? (i === 0 ? -30 : 45) : (Math.random() * 2 - 1) * (halfH - 80);
+          world.props.push({
+            id: 'prop_' + i,
+            name: pType.name,
+            color: pType.color,
+            top: pType.top,
+            wx: px,
+            wy: py,
+            w: pType.w,
+            h: pType.h,
+            z: pType.z,
+            hp: pType.hp,
+            maxHp: pType.hp,
+            kind: pType.kind,
+            hitFlash: 0
+          });
+        }
+
+        // Map-specific environmental hazards
+        if (!world.isPreview) {
+          if (mapDef.id === 'cyber') {
+            // Jump pads
+            [[-halfW * 0.5, -halfH * 0.45], [halfW * 0.5, halfH * 0.45]].forEach(([jx, jy], idx) => {
+              world.hazards.push({ id: 'jp_' + idx, kind: 'jumppad', wx: jx, wy: jy, radius: 34, color: '#38bdf8' });
+            });
+          } else if (mapDef.id === 'orbital') {
+            // Twin warp portals
+            world.hazards.push({ id: 'warp_a', kind: 'portal', wx: -halfW * 0.55, wy: 0, radius: 32, targetX: halfW * 0.55, targetY: 0, color: '#2dd4bf', cd: 0 });
+            world.hazards.push({ id: 'warp_b', kind: 'portal', wx: halfW * 0.55, wy: 0, radius: 32, targetX: -halfW * 0.55, targetY: 0, color: '#a855f7', cd: 0 });
+          } else if (mapDef.id === 'ruins') {
+            // Quicksand pit
+            world.hazards.push({ id: 'qs_1', kind: 'quicksand', wx: 0, wy: 0, radius: 75, color: '#b45309' });
+          }
+        }
+      }
+
+      function spawnPixelBurst(world, wx, wy, wz, color, count = 16, speed = 180) {
+        for (let i = 0; i < count; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = (0.3 + Math.random() * 0.7) * speed;
+          world.particles.push({
+            wx, wy, wz: wz + 6,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            vz: 110 + Math.random() * 190,
+            size: 3 + Math.floor(Math.random() * 4),
+            color,
+            life: 0.45 + Math.random() * 0.45
+          });
+        }
+      }
+
+      function addFloatingText(world, wx, wy, wz, text, color = '#ffffff') {
+        world.floatingTexts.push({
+          wx, wy, wz: wz + 28,
+          text,
+          color,
+          life: 0.95
+        });
+      }
+
+      function damageProp(world, prop, dmg, attacker) {
+        prop.hp -= dmg;
+        prop.hitFlash = 0.12;
+        SFX.playHit(false);
+        if (prop.hp <= 0) {
+          SFX.playPropBreak();
+          spawnPixelBurst(world, prop.wx, prop.wy, prop.z * 0.5, prop.color, 24, 240);
+          spawnPixelBurst(world, prop.wx, prop.wy, prop.z * 0.5, prop.top, 10, 180);
+          addFloatingText(world, prop.wx, prop.wy, prop.z, prop.name.toUpperCase() + ' SHATTERED!', prop.top);
+
+          if (prop.kind === 'explosive') {
+            // Slag vat / plasma cell explodes!
+            world.zones.push({
+              kind: 'explosion',
+              ownerId: attacker ? attacker.id : null,
+              wx: prop.wx, wy: prop.wy,
+              radius: 115,
+              dmg: 36,
+              kb: 340,
+              color: '#f97316',
+              life: 0.35,
+              applied: false
+            });
+          } else if (prop.kind === 'heal' && attacker) {
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + 45);
+            addFloatingText(world, attacker.wx, attacker.wy, attacker.wz, '+45 URN HEAL', '#34d399');
+          } else if (prop.kind === 'xp' && attacker) {
+            grantXp(attacker, 45);
+            addFloatingText(world, attacker.wx, attacker.wy, attacker.wz, '+45 DATA XP', '#38bdf8');
+          } else if (prop.kind === 'hydrant') {
+            world.zones.push({
+              kind: 'geyser',
+              ownerId: null,
+              wx: prop.wx, wy: prop.wy,
+              radius: 65,
+              dmg: 0,
+              kb: 120,
+              color: '#38bdf8',
+              life: 3.5
+            });
+          }
+          const idx = world.props.indexOf(prop);
+          if (idx !== -1) world.props.splice(idx, 1);
+        }
+      }
+
+      // =========================================================
+      // 9. COMBAT, TIME STOP, REFLECT, SILENCE & HEAL EXECUTION
+      // =========================================================
+      function grantXp(f, amount) {
+        f.xp += amount;
+        const req = f.level * 100;
+        if (f.xp >= req) {
+          f.xp -= req;
+          f.level++;
+          f.sp += 2;
+          f.hp = Math.min(f.maxHp, f.hp + 40);
+          if (f.isHuman) {
+            showToast(`⬆️ LEVEL UP! Lvl ${f.level} (+2 Stat Points)`, 'emerald');
+          }
+        }
+      }
+
+      function applyDamageAndKnockback(world, target, attacker, rawDmg, kbX, kbY, kbZ = 140, impactId = 'none') {
+        if (!target || target.respawnTimer > 0) return;
+
+        // If target has Aegis Parry or Mirror Ward active against close melee/AoE
+        if (target.mirrorTimer > 0 && attacker && attacker.id !== target.id && rawDmg > 0) {
+          addFloatingText(world, target.wx, target.wy, target.wz, '🔮 MIRROR PARRY!', '#e879f9');
+          rawDmg *= 0.25;
+        }
+
+        const dmg = Math.max(1, Math.round(rawDmg * (1 - target.armorDR)));
+
+        // If target is frozen in Chrono Stasis, accumulate damage & knockback!
+        if (target.stasisTimer > 0) {
+          target.stasisStoredDmg += dmg;
+          target.stasisStoredVx += kbX;
+          target.stasisStoredVy += kbY;
+          target.stasisStoredVz += kbZ;
+          target.flashTimer = 0.14;
+          addFloatingText(world, target.wx, target.wy, target.wz, `⏸️ +${dmg} STORED`, '#fde047');
+          return;
+        }
+
+        target.hp -= dmg;
+        target.vx += kbX;
+        target.vy += kbY;
+        target.vz = Math.max(target.vz, kbZ);
+        target.flashTimer = 0.24;
+        target.squashX = 1.32;
+        target.squashY = 0.72;
+        if (attacker) {
+          target.lastHitBy = attacker.id;
+          attacker.damageDealt += dmg;
+        }
+
+        SFX.playHit(dmg >= 32);
+        spawnPixelBurst(world, target.wx, target.wy, target.wz + 12, '#f87171', 10, 150);
+        addFloatingText(world, target.wx, target.wy, target.wz, `-${dmg}`, '#fca5a5');
+
+        // Apply Stage-3 On-Hit Impacts (Anything Goes)
+        if (impactId && impactId !== 'none') {
+          if (impactId === 'explode') {
+            world.zones.push({ kind: 'explosion', ownerId: attacker?.id, wx: target.wx, wy: target.wy, radius: 95, dmg: 22, kb: 260, color: '#f97316', life: 0.3, applied: false });
+          } else if (impactId === 'stasis_lock') {
+            target.stasisTimer = 1.4;
+            addFloatingText(world, target.wx, target.wy, target.wz + 14, '⏸️ TIME LOCKED!', '#fde047');
+          } else if (impactId === 'silence_jam') {
+            target.silenceTimer = 2.2;
+            target.shieldTimer = 0;
+            target.mirrorTimer = 0;
+            addFloatingText(world, target.wx, target.wy, target.wz + 14, '🚫 SILENCED!', '#f43f5e');
+          } else if (impactId === 'buff_siphon' && attacker) {
+            target.shieldTimer = 0;
+            target.mirrorTimer = 0;
+            target.overdriveTimer = 0;
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + 20);
+            attacker.overdriveTimer = Math.max(attacker.overdriveTimer, 2.5);
+            addFloatingText(world, attacker.wx, attacker.wy, attacker.wz, '🧲 SIPHONED!', '#34d399');
+          } else if (impactId === 'frost_freeze') {
+            target.chillTimer = 2.5;
+            addFloatingText(world, target.wx, target.wy, target.wz + 14, '❄️ CHILLED!', '#7dd3fc');
+          } else if (impactId === 'vamp_drain' && attacker) {
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + 22);
+            addFloatingText(world, attacker.wx, attacker.wy, attacker.wz, '+22 DRAIN', '#f43f5e');
+          } else if (impactId === 'sky_launch') {
+            target.vz = 460;
+          } else if (impactId === 'sanctuary_bloom') {
+            world.zones.push({ kind: 'sanctuary', ownerId: attacker?.id, wx: target.wx, wy: target.wy, radius: 95, dmg: 0, kb: 0, color: '#34d399', life: 3.5 });
+          }
+        }
+
+        // Check KO!
+        if (target.hp <= 0) {
+          handleFighterKO(world, target, attacker);
+        }
+      }
+
+      function handleFighterKO(world, victim, killer) {
+        victim.hp = 0;
+        victim.deaths++;
+        victim.respawnTimer = world.isPreview ? 1.2 : 2.6;
+        victim.stasisTimer = 0;
+        victim.silenceTimer = 0;
+        victim.chillTimer = 0;
+
+        // 48-pixel death explosion + Bit-Crunch Death Sound!
+        SFX.playPixelDeath();
+        spawnPixelBurst(world, victim.wx, victim.wy, victim.wz + 12, victim.charDef.primary, 32, 260);
+        spawnPixelBurst(world, victim.wx, victim.wy, victim.wz + 12, '#ffffff', 16, 200);
+        addFloatingText(world, victim.wx, victim.wy, victim.wz + 18, '💥 KO!', '#f43f5e');
+
+        if (killer && killer.id !== victim.id) {
+          killer.kos++;
+          killer.sp += 1;
+          grantXp(killer, 65);
+          if (!world.isPreview) {
+            world.killFeed.unshift({ text: `${killer.name} KO'd ${victim.name}`, life: 4.0 });
+            if (world.killFeed.length > 4) world.killFeed.pop();
+          }
+        }
+      }
+
+      function castFighterSkill(world, fighter, slotIdx = fighter.activeSlot) {
+        if (!fighter || fighter.respawnTimer > 0 || fighter.stasisTimer > 0) return false;
+        if (fighter.silenceTimer > 0) {
+          if (fighter.isHuman) addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, '🚫 SILENCED!', '#f43f5e');
+          return false;
+        }
+        if (fighter.cooldowns[slotIdx] > 0) return false;
+
+        const wf = fighter.slots[slotIdx] || createDefaultWorkflow('punch');
+        const skill = getSkillById(wf.skillId);
+        const trig = GAME.mode === 'anything'
+          ? (STAGE1_TRIGGERS.find(t => t.id === wf.triggerId) || STAGE1_TRIGGERS[0])
+          : STAGE1_TRIGGERS[0];
+        const impactId = GAME.mode === 'anything' ? wf.impactId : 'none';
+
+        const sizeM = GAME.mode === 'anything' ? wf.sizeMult : 1.0;
+        const powerM = GAME.mode === 'anything' ? wf.powerMult : 1.0;
+        const speedM = GAME.mode === 'anything' ? wf.speedMult : 1.0;
+
+        fighter.cooldowns[slotIdx] = Math.max(0.18, skill.cd * fighter.cdMult);
+        fighter.punchAnim = 0.22;
+        fighter.squashX = 1.18;
+        fighter.squashY = 0.85;
+
+        SFX.playCast(skill.cat);
+
+        // Trigger bonus actions (Anything Goes)
+        if (trig.dash) {
+          fighter.vx += Math.cos(fighter.aimAngle) * 420;
+          fighter.vy += Math.sin(fighter.aimAngle) * 420;
+        }
+        if (trig.backstep) {
+          fighter.vx -= Math.cos(fighter.aimAngle) * 360;
+          fighter.vy -= Math.sin(fighter.aimAngle) * 360;
+          fighter.vz = Math.max(fighter.vz, 220);
+        }
+        if (trig.leap) {
+          fighter.vz = Math.max(fighter.vz, 440);
+        }
+        if (trig.heal) {
+          fighter.hp = Math.min(fighter.maxHp, fighter.hp + trig.heal);
+          addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, `+${trig.heal} HP`, '#34d399');
+        }
+        if (trig.slowZone) {
+          world.zones.push({ kind: 'timeslow', ownerId: fighter.id, wx: fighter.wx, wy: fighter.wy, radius: 130, dmg: 0, kb: 0, color: '#fbbf24', life: 3.2 });
+        }
+        if (trig.shield) {
+          fighter.shieldTimer = Math.max(fighter.shieldTimer, 1.8);
+        }
+
+        const odMult = fighter.overdriveTimer > 0 ? 1.3 : 1.0;
+        const trigDmgMult = trig.dmgMult || 1.0;
+        // Balanced multi-shot scaling in Normal mode
+        const count = trig.mult || 1;
+        const multiScale = (GAME.mode === 'normal' && count > 1) ? (1 / Math.sqrt(count)) : 1.0;
+        const finalDmg = skill.dmg * fighter.atkMult * powerM * odMult * trigDmgMult * multiScale;
+        const finalKb = skill.kb * fighter.kbMult;
+        const finalRad = skill.radius * sizeM;
+        const finalSpd = skill.speed * speedM;
+
+        // Special Support, Time, Block & Cancel Skills
+        if (skill.kind === 'timestop') {
+          world.zones.push({ kind: 'timestop', ownerId: fighter.id, wx: fighter.wx, wy: fighter.wy, radius: finalRad, dmg: finalDmg, kb: finalKb, color: '#fde047', life: 2.8 });
+          addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, '⏸️ CHRONO STASIS!', '#fde047');
+          return true;
+        }
+        if (skill.kind === 'timeslow') {
+          const tx = fighter.wx + Math.cos(fighter.aimAngle) * 140;
+          const ty = fighter.wy + Math.sin(fighter.aimAngle) * 140;
+          world.zones.push({ kind: 'timeslow', ownerId: fighter.id, wx: tx, wy: ty, radius: finalRad, dmg: 0, kb: 0, color: '#fbbf24', life: 4.2 });
+          addFloatingText(world, tx, ty, 10, '⏳ TIME DILATION', '#fbbf24');
+          return true;
+        }
+        if (skill.kind === 'parry') {
+          fighter.shieldTimer = 2.4;
+          addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, '🛡️ AEGIS PARRY!', '#38bdf8');
+          return true;
+        }
+        if (skill.kind === 'mirror') {
+          fighter.mirrorTimer = 2.8;
+          addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, '🔮 MIRROR WARD!', '#e879f9');
+          return true;
+        }
+        if (skill.kind === 'cancel') {
+          // Erase nearby enemy projectiles, strip shields, and silence enemies
+          for (let i = world.projectiles.length - 1; i >= 0; i--) {
+            const p = world.projectiles[i];
+            if (p.ownerId !== fighter.id && Math.hypot(p.wx - fighter.wx, p.wy - fighter.wy) <= finalRad) {
+              spawnPixelBurst(world, p.wx, p.wy, p.wz, '#f43f5e', 6, 120);
+              world.projectiles.splice(i, 1);
+            }
+          }
+          world.fighters.forEach(other => {
+            if (other.id !== fighter.id && other.respawnTimer <= 0 && Math.hypot(other.wx - fighter.wx, other.wy - fighter.wy) <= finalRad) {
+              other.silenceTimer = 2.6;
+              other.shieldTimer = 0;
+              other.mirrorTimer = 0;
+              other.overdriveTimer = 0;
+              const ang = Math.atan2(other.wy - fighter.wy, other.wx - fighter.wx);
+              applyDamageAndKnockback(world, other, fighter, finalDmg, Math.cos(ang) * finalKb, Math.sin(ang) * finalKb, 150, impactId);
+              addFloatingText(world, other.wx, other.wy, other.wz + 16, '🚫 SKILLS CANCELLED!', '#f43f5e');
+            }
+          });
+          world.zones.push({ kind: 'emp_ring', ownerId: fighter.id, wx: fighter.wx, wy: fighter.wy, radius: finalRad, dmg: 0, kb: 0, color: '#f43f5e', life: 0.35 });
+          return true;
+        }
+        if (skill.kind === 'heal') {
+          const healAmt = Math.round(55 * powerM);
+          fighter.hp = Math.min(fighter.maxHp, fighter.hp + healAmt);
+          fighter.chillTimer = 0;
+          fighter.silenceTimer = 0;
+          fighter.regenTimer = 4.0;
+          spawnPixelBurst(world, fighter.wx, fighter.wy, fighter.wz + 10, '#10b981', 16, 140);
+          addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, `+${healAmt} VITAL MEND`, '#10b981');
+          return true;
+        }
+        if (skill.kind === 'buff') {
+          fighter.overdriveTimer = 4.5;
+          fighter.hp = Math.min(fighter.maxHp, fighter.hp + 20);
+          spawnPixelBurst(world, fighter.wx, fighter.wy, fighter.wz + 10, '#facc15', 18, 160);
+          addFloatingText(world, fighter.wx, fighter.wy, fighter.wz, '👑 TITAN OVERDRIVE!', '#facc15');
+          return true;
+        }
+        if (skill.kind === 'sanctuary') {
+          const sx = fighter.wx + Math.cos(fighter.aimAngle) * 70;
+          const sy = fighter.wy + Math.sin(fighter.aimAngle) * 70;
+          world.zones.push({ kind: 'sanctuary', ownerId: fighter.id, wx: sx, wy: sy, radius: finalRad, dmg: 0, kb: 0, color: '#34d399', life: 4.5 });
+          addFloatingText(world, sx, sy, 10, '⛩️ SANCTUARY', '#34d399');
+          return true;
+        }
+        if (skill.kind === 'nova') {
+          world.zones.push({ kind: 'explosion', ownerId: fighter.id, wx: fighter.wx, wy: fighter.wy, radius: finalRad, dmg: finalDmg, kb: finalKb, color: skill.color, life: 0.32, applied: false, impactId });
+          return true;
+        }
+        if (skill.kind === 'dash') {
+          const dist = skill.range * sizeM;
+          const nx = fighter.wx + Math.cos(fighter.aimAngle) * dist;
+          const ny = fighter.wy + Math.sin(fighter.aimAngle) * dist;
+          spawnPixelBurst(world, fighter.wx, fighter.wy, fighter.wz + 10, skill.color, 12, 160);
+          world.fighters.forEach(other => {
+            if (other.id !== fighter.id && other.respawnTimer <= 0) {
+              const midX = (fighter.wx + nx) * 0.5;
+              const midY = (fighter.wy + ny) * 0.5;
+              if (Math.hypot(other.wx - midX, other.wy - midY) <= dist * 0.65 + other.radius) {
+                applyDamageAndKnockback(world, other, fighter, finalDmg, Math.cos(fighter.aimAngle) * finalKb, Math.sin(fighter.aimAngle) * finalKb, 160, impactId);
+              }
+            }
+          });
+          fighter.wx = nx;
+          fighter.wy = ny;
+          spawnPixelBurst(world, fighter.wx, fighter.wy, fighter.wz + 10, skill.color, 14, 180);
+          return true;
+        }
+
+        // Projectile / Melee / Grapple / Volley / Nova-Shot firing
+        let totalShots = count;
+        let spreadStep = 0.22;
+        if (skill.kind === 'volley' && count === 1) { totalShots = 3; spreadStep = 0.24; }
+        if (skill.kind === 'nova_shot' && count === 1) { totalShots = 5; spreadStep = 0.28; }
+        if (trig.id === 'nova_360') { spreadStep = (Math.PI * 2) / totalShots; }
+
+        for (let i = 0; i < totalShots; i++) {
+          const offset = (i - (totalShots - 1) * 0.5) * spreadStep;
+          const ang = fighter.aimAngle + offset;
+          world.projectiles.push({
+            ownerId: fighter.id,
+            kind: skill.kind,
+            impactId,
+            wx: fighter.wx + Math.cos(ang) * 22,
+            wy: fighter.wy + Math.sin(ang) * 22,
+            wz: fighter.wz + 12,
+            startX: fighter.wx,
+            startY: fighter.wy,
+            vx: Math.cos(ang) * finalSpd,
+            vy: Math.sin(ang) * finalSpd,
+            radius: finalRad,
+            dmg: finalDmg,
+            kb: finalKb,
+            color: skill.color,
+            life: Math.max(0.18, (skill.range * sizeM) / Math.max(120, finalSpd)),
+            returning: false
+          });
+        }
+        return true;
+      }
+
+      // =========================================================
+      // 10. WORLD SIMULATION LOOP (PHYSICS, ZONES, AI, PROPS)
+      // =========================================================
+      function stepWorldSimulation(world, dt) {
+        const mapDef = ARENA_MAPS.find(m => m.id === GAME.selectedMapId) || ARENA_MAPS[0];
+        const { halfW, halfH } = getArenaBounds(world.isPreview ? 0.55 : GAME.mapScale);
+
+        // Periodic Health Potions & Map Hazards (Live Arena only)
+        if (!world.isPreview) {
+          world.potionTimer -= dt;
+          if (world.potionTimer <= 0) {
+            world.potionTimer = 22;
+            if (world.potions.length < 3) {
+              world.potions.push({
+                wx: (Math.random() * 2 - 1) * (halfW - 70),
+                wy: (Math.random() * 2 - 1) * (halfH - 70),
+                pulse: 0
+              });
+            }
+          }
+
+          world.hazardTimer -= dt;
+          if (world.hazardTimer <= 0) {
+            if (mapDef.id === 'metro') {
+              world.hazardTimer = 3.6;
+              const dir = Math.random() < 0.5 ? 1 : -1;
+              const laneY = (Math.random() * 2 - 1) * (halfH - 60);
+              world.projectiles.push({
+                ownerId: null,
+                kind: 'traffic_car',
+                impactId: 'none',
+                wx: -dir * (halfW + 40),
+                wy: laneY,
+                wz: 12,
+                vx: dir * 560,
+                vy: 0,
+                radius: 26,
+                dmg: 32,
+                kb: 420,
+                color: dir > 0 ? '#facc15' : '#38bdf8',
+                life: (halfW * 2 + 120) / 560
+              });
+            } else if (mapDef.id === 'foundry') {
+              world.hazardTimer = 4.2;
+              world.zones.push({
+                kind: 'explosion',
+                ownerId: null,
+                wx: (Math.random() * 2 - 1) * (halfW - 80),
+                wy: (Math.random() * 2 - 1) * (halfH - 80),
+                radius: 85,
+                dmg: 26,
+                kb: 280,
+                color: '#f97316',
+                life: 0.45,
+                applied: false
+              });
+            } else if (mapDef.id === 'ruins') {
+              world.hazardTimer = 4.5;
+              const ang = Math.random() * Math.PI * 2;
+              world.projectiles.push({
+                ownerId: null,
+                kind: 'boulder',
+                impactId: 'none',
+                wx: -Math.cos(ang) * (halfW + 30),
+                wy: -Math.sin(ang) * (halfH + 30),
+                wz: 16,
+                vx: Math.cos(ang) * 340,
+                vy: Math.sin(ang) * 340,
+                radius: 24,
+                dmg: 28,
+                kb: 360,
+                color: '#d97706',
+                life: 4.5
+              });
+            } else {
+              world.hazardTimer = 5.0;
+            }
+          }
+        }
+
+        // Update Fighters
+        world.fighters.forEach(f => {
+          // Respawn handling
+          if (f.respawnTimer > 0) {
+            f.respawnTimer -= dt;
+            if (f.respawnTimer <= 0) {
+              f.hp = f.maxHp;
+              f.wx = (Math.random() * 2 - 1) * (halfW - 80);
+              f.wy = (Math.random() * 2 - 1) * (halfH - 80);
+              f.wz = 40;
+              f.vx = 0; f.vy = 0; f.vz = 0;
+              spawnPixelBurst(world, f.wx, f.wy, 20, f.charDef.primary, 16, 150);
+            }
+            return;
+          }
+
+          // Cooldowns & Buff/Debuff Timers
+          for (let i = 0; i < f.cooldowns.length; i++) {
+            if (f.cooldowns[i] > 0) f.cooldowns[i] = Math.max(0, f.cooldowns[i] - dt);
+          }
+          if (f.punchAnim > 0) f.punchAnim = Math.max(0, f.punchAnim - dt);
+          if (f.flashTimer > 0) f.flashTimer = Math.max(0, f.flashTimer - dt);
+          if (f.chillTimer > 0) f.chillTimer = Math.max(0, f.chillTimer - dt);
+          if (f.silenceTimer > 0) f.silenceTimer = Math.max(0, f.silenceTimer - dt);
+          if (f.shieldTimer > 0) f.shieldTimer = Math.max(0, f.shieldTimer - dt);
+          if (f.mirrorTimer > 0) f.mirrorTimer = Math.max(0, f.mirrorTimer - dt);
+          if (f.overdriveTimer > 0) f.overdriveTimer = Math.max(0, f.overdriveTimer - dt);
+          if (f.regenTimer > 0) {
+            f.regenTimer = Math.max(0, f.regenTimer - dt);
+            f.hp = Math.min(f.maxHp, f.hp + 6 * dt);
+          }
+          if (f.hpRegen > 0) {
+            f.hp = Math.min(f.maxHp, f.hp + f.hpRegen * dt);
+          }
+
+          // Recover squash & stretch smoothly
+          f.squashX += (1 - f.squashX) * Math.min(1, dt * 14);
+          f.squashY += (1 - f.squashY) * Math.min(1, dt * 14);
+
+          // Chrono Stasis freeze check
+          if (f.stasisTimer > 0) {
+            f.stasisTimer -= dt;
+            if (f.stasisTimer <= 0) {
+              // Unleash accumulated stasis damage & knockback!
+              const burstDmg = f.stasisStoredDmg;
+              const bVx = f.stasisStoredVx;
+              const bVy = f.stasisStoredVy;
+              const bVz = f.stasisStoredVz;
+              f.stasisStoredDmg = 0;
+              f.stasisStoredVx = 0;
+              f.stasisStoredVy = 0;
+              f.stasisStoredVz = 0;
+              if (burstDmg > 0) {
+                applyDamageAndKnockback(world, f, null, burstDmg, bVx, bVy, Math.max(180, bVz), 'none');
+                addFloatingText(world, f.wx, f.wy, f.wz + 22, `💥 STASIS SHATTER -${burstDmg}!`, '#fde047');
+              }
+            }
+            return;
+          }
+
+          // Check if inside any Time Dilation zone
+          let timeFactor = 1.0;
+          world.zones.forEach(z => {
+            if (z.kind === 'timeslow' && z.ownerId !== f.id && Math.hypot(f.wx - z.wx, f.wy - z.wy) <= z.radius) {
+              timeFactor = 0.32;
+            }
+          });
+          if (f.chillTimer > 0) timeFactor *= 0.45;
+          if (f.overdriveTimer > 0) timeFactor *= 1.25;
+
+          // Input / AI Steering
+          let moveX = 0;
+          let moveY = 0;
+
+          if (world.isPreview) {
+            if (f.isPreviewAttacker) {
+              f.aimAngle = 0;
+              castFighterSkill(world, f, GAME.draftSlot);
+            } else {
+              // Dummy gently oscillates
+              f.wy = Math.sin(performance.now() * 0.002) * 35;
+            }
+          } else if (f.isHuman) {
+            if (GAME.keys['KeyA'] || GAME.keys['ArrowLeft']) moveX -= 1;
+            if (GAME.keys['KeyD'] || GAME.keys['ArrowRight']) moveX += 1;
+            if (GAME.keys['KeyW'] || GAME.keys['ArrowUp']) moveY -= 1;
+            if (GAME.keys['KeyS'] || GAME.keys['ArrowDown']) moveY += 1;
+            if (Math.hypot(GAME.touch.moveX, GAME.touch.moveY) > 0.12) {
+              moveX = GAME.touch.moveX;
+              moveY = GAME.touch.moveY;
+            }
+            if ((GAME.keys['Space']) && f.wz <= 1) {
+              f.vz = f.jumpPower;
+              f.squashX = 0.78;
+              f.squashY = 1.26;
+            }
+            if (GAME.mouse.down || GAME.touch.casting) {
+              castFighterSkill(world, f, f.activeSlot);
+            }
+          } else if (!f.isRemote) {
+            // AI Bot Logic
+            const prof = BOT_PROFILES[GAME.botDiff] || BOT_PROFILES.fighter;
+            f.aiTimer -= dt;
+            let nearest = null;
+            let bestDist = Infinity;
+            world.fighters.forEach(other => {
+              if (other.id !== f.id && other.respawnTimer <= 0) {
+                const d = Math.hypot(other.wx - f.wx, other.wy - f.wy);
+                if (d < bestDist) { bestDist = d; nearest = other; }
+              }
+            });
+
+            if (f.aiTimer <= 0) {
+              f.aiTimer = prof.reaction * (0.7 + Math.random() * 0.6);
+              if (nearest) {
+                const ang = Math.atan2(nearest.wy - f.wy, nearest.wx - f.wx);
+                f.aimAngle = ang + (Math.random() * 2 - 1) * prof.aimJitter;
+                const desiredDist = 135;
+                if (bestDist > desiredDist + 40) {
+                  f.aiMoveX = Math.cos(ang) * prof.aggro;
+                  f.aiMoveY = Math.sin(ang) * prof.aggro;
+                } else if (bestDist < desiredDist - 40) {
+                  f.aiMoveX = -Math.cos(ang) * 0.7;
+                  f.aiMoveY = -Math.sin(ang) * 0.7;
+                } else {
+                  f.aiMoveX = -Math.sin(ang) * 0.8;
+                  f.aiMoveY = Math.cos(ang) * 0.8;
+                }
+                if (Math.random() < 0.16 && f.wz <= 1) {
+                  f.vz = f.jumpPower;
+                }
+                // Pick ready slot
+                const readySlots = [];
+                for (let s = 0; s < f.unlockedSlots; s++) {
+                  if (f.cooldowns[s] <= 0) readySlots.push(s);
+                }
+                if (readySlots.length > 0 && bestDist < 440) {
+                  const chosen = readySlots[Math.floor(Math.random() * readySlots.length)];
+                  f.activeSlot = chosen;
+                  castFighterSkill(world, f, chosen);
+                }
+              }
+            }
+            moveX = f.aiMoveX;
+            moveY = f.aiMoveY;
+          }
+
+          const len = Math.hypot(moveX, moveY);
+          if (len > 1) { moveX /= len; moveY /= len; }
+          if (Math.abs(moveX) > 0.05) f.facing = moveX >= 0 ? 1 : -1;
+
+          const accel = f.moveSpeed * 5.2 * timeFactor;
+          f.vx += moveX * accel * dt;
+          f.vy += moveY * accel * dt;
+
+          // Glacier blizzard wind push
+          if (!world.isPreview && mapDef.id === 'glacier') {
+            f.vx += Math.sin(performance.now() * 0.001) * 45 * dt;
+          }
+
+          // Friction & Gravity
+          const damp = Math.pow(mapDef.friction, dt * 60);
+          f.vx *= damp;
+          f.vy *= damp;
+
+          f.wx += f.vx * dt * timeFactor;
+          f.wy += f.vy * dt * timeFactor;
+
+          if (f.wz > 0 || f.vz !== 0) {
+            f.wz += f.vz * dt;
+            f.vz -= mapDef.gravity * dt;
+            if (f.wz <= 0) {
+              f.wz = 0;
+              f.vz = 0;
+              f.squashX = 1.24;
+              f.squashY = 0.78;
+            }
+          }
+
+          // Arena Wall Clamping
+          f.wx = Math.max(-halfW + f.radius, Math.min(halfW - f.radius, f.wx));
+          f.wy = Math.max(-halfH + f.radius, Math.min(halfH - f.radius, f.wy));
+
+          // Prop Solid Collision (unless jumping over low props)
+          world.props.forEach(p => {
+            if (f.wz < p.z * 0.75) {
+              const dx = f.wx - p.wx;
+              const dy = f.wy - p.wy;
+              const ox = p.w * 0.5 + f.radius - Math.abs(dx);
+              const oy = p.h * 0.5 + f.radius - Math.abs(dy);
+              if (ox > 0 && oy > 0) {
+                if (ox < oy) f.wx += dx >= 0 ? ox : -ox;
+                else f.wy += dy >= 0 ? oy : -oy;
+              }
+            }
+          });
+
+          // Map Hazards Interaction
+          world.hazards.forEach(h => {
+            if (h.cd > 0) h.cd -= dt;
+            if (Math.hypot(f.wx - h.wx, f.wy - h.wy) <= h.radius + f.radius) {
+              if (h.kind === 'jumppad' && f.wz < 10) {
+                f.vz = 640;
+                SFX.playTone(420, 0.16, 'triangle', 0.12, 880);
+              } else if (h.kind === 'portal' && (!h.cd || h.cd <= 0)) {
+                f.wx = h.targetX;
+                f.wy = h.targetY;
+                h.cd = 1.5;
+                spawnPixelBurst(world, f.wx, f.wy, 16, h.color, 14, 150);
+              } else if (h.kind === 'quicksand') {
+                f.vx *= 0.82;
+                f.vy *= 0.82;
+              }
+            }
+          });
+
+          // Health Potions Pickup
+          for (let i = world.potions.length - 1; i >= 0; i--) {
+            const pot = world.potions[i];
+            if (Math.hypot(f.wx - pot.wx, f.wy - pot.wy) <= f.radius + 18 && f.hp < f.maxHp) {
+              f.hp = Math.min(f.maxHp, f.hp + 60);
+              SFX.playTone(520, 0.15, 'triangle', 0.13, 980);
+              addFloatingText(world, f.wx, f.wy, f.wz, '+60 POTION', '#34d399');
+              world.potions.splice(i, 1);
+            }
+          }
+        });
+
+        // Update Projectiles
+        for (let i = world.projectiles.length - 1; i >= 0; i--) {
+          const p = world.projectiles[i];
+          let pTime = 1.0;
+          world.zones.forEach(z => {
+            if ((z.kind === 'timestop' || z.kind === 'timeslow') && z.ownerId !== p.ownerId) {
+              if (Math.hypot(p.wx - z.wx, p.wy - z.wy) <= z.radius) {
+                pTime = z.kind === 'timestop' ? 0.02 : 0.3;
+              }
+            }
+          });
+
+          p.life -= dt * pTime;
+          if (p.kind === 'boomerang' && !p.returning && p.life < 0.42) {
+            p.returning = true;
+          }
+          if (p.returning && p.ownerId) {
+            const owner = world.fighters.find(f => f.id === p.ownerId);
+            if (owner) {
+              const ang = Math.atan2(owner.wy - p.wy, owner.wx - p.wx);
+              p.vx = Math.cos(ang) * 580;
+              p.vy = Math.sin(ang) * 580;
+            }
+          }
+
+          p.wx += p.vx * dt * pTime;
+          p.wy += p.vy * dt * pTime;
+
+          // Check Prop Destruction
+          let hitSomething = false;
+          for (let j = world.props.length - 1; j >= 0; j--) {
+            const prop = world.props[j];
+            if (Math.abs(p.wx - prop.wx) <= prop.w * 0.5 + p.radius && Math.abs(p.wy - prop.wy) <= prop.h * 0.5 + p.radius) {
+              const owner = world.fighters.find(f => f.id === p.ownerId);
+              damageProp(world, prop, p.dmg, owner);
+              if (p.kind !== 'traffic_car' && p.kind !== 'boulder') {
+                hitSomething = true;
+              }
+              break;
+            }
+          }
+
+          // Check Fighter Hit / Reflection
+          if (!hitSomething) {
+            for (let k = 0; k < world.fighters.length; k++) {
+              const target = world.fighters[k];
+              if (target.respawnTimer > 0 || target.id === p.ownerId) continue;
+              if (Math.hypot(target.wx - p.wx, target.wy - p.wy) <= target.radius + p.radius) {
+                // Mirror Ward or Aegis Parry reflects projectiles!
+                if (target.mirrorTimer > 0 || target.shieldTimer > 0) {
+                  p.ownerId = target.id;
+                  p.vx = -p.vx * 1.3;
+                  p.vy = -p.vy * 1.3;
+                  p.life = Math.max(p.life, 0.8);
+                  SFX.playTone(680, 0.12, 'square', 0.12, 1020);
+                  addFloatingText(world, target.wx, target.wy, target.wz + 14, '🛡️ REFLECTED!', '#38bdf8');
+                  break;
+                }
+
+                const owner = world.fighters.find(f => f.id === p.ownerId);
+                const ang = Math.atan2(p.vy, p.vx);
+
+                // Grapple Hook pulls target toward attacker!
+                if (p.kind === 'grapple' && owner) {
+                  const pullAng = Math.atan2(owner.wy - target.wy, owner.wx - target.wx);
+                  applyDamageAndKnockback(world, target, owner, p.dmg, Math.cos(pullAng) * 440, Math.sin(pullAng) * 440, 150, p.impactId);
+                  addFloatingText(world, target.wx, target.wy, target.wz + 14, '🪝 HOOKED!', '#cbd5e1');
+                } else {
+                  applyDamageAndKnockback(world, target, owner, p.dmg, Math.cos(ang) * p.kb, Math.sin(ang) * p.kb, 150, p.impactId);
+                }
+
+                if (p.kind === 'lifesteal' && owner) {
+                  const steal = Math.round(p.dmg * 0.75);
+                  owner.hp = Math.min(owner.maxHp, owner.hp + steal);
+                  addFloatingText(world, owner.wx, owner.wy, owner.wz, `+${steal} SIPHON`, '#f43f5e');
+                }
+                if (p.kind === 'frost') target.chillTimer = 2.4;
+                if (p.kind === 'meteor' || p.kind === 'cluster') {
+                  world.zones.push({ kind: 'explosion', ownerId: p.ownerId, wx: p.wx, wy: p.wy, radius: 95, dmg: p.dmg * 0.7, kb: 300, color: p.color, life: 0.32, applied: false });
+                }
+
+                if (p.kind !== 'traffic_car' && p.kind !== 'boulder') {
+                  hitSomething = true;
+                }
+                break;
+              }
+            }
+          }
+
+          if (hitSomething || p.life <= 0) {
+            spawnPixelBurst(world, p.wx, p.wy, p.wz, p.color, 6, 110);
+            world.projectiles.splice(i, 1);
+          }
+        }
+
+        // Update Zones (Chrono Stasis, Time Dilation, Sanctuary, Explosions, Gravity Wells)
+        for (let i = world.zones.length - 1; i >= 0; i--) {
+          const z = world.zones[i];
+          z.life -= dt;
+
+          if (z.kind === 'explosion' && !z.applied) {
+            z.applied = true;
+            const owner = world.fighters.find(f => f.id === z.ownerId);
+            spawnPixelBurst(world, z.wx, z.wy, 12, z.color, 22, 240);
+            world.fighters.forEach(f => {
+              if (f.id !== z.ownerId && f.respawnTimer <= 0 && Math.hypot(f.wx - z.wx, f.wy - z.wy) <= z.radius + f.radius) {
+                const ang = Math.atan2(f.wy - z.wy, f.wx - z.wx);
+                applyDamageAndKnockback(world, f, owner, z.dmg, Math.cos(ang) * z.kb, Math.sin(ang) * z.kb, 220, z.impactId || 'none');
+              }
+            });
+            world.props.slice().forEach(prop => {
+              if (Math.hypot(prop.wx - z.wx, prop.wy - z.wy) <= z.radius + prop.w * 0.5) {
+                damageProp(world, prop, z.dmg, owner);
+              }
+            });
+          } else if (z.kind === 'timestop') {
+            world.fighters.forEach(f => {
+              if (f.id !== z.ownerId && f.respawnTimer <= 0 && Math.hypot(f.wx - z.wx, f.wy - z.wy) <= z.radius) {
+                f.stasisTimer = Math.max(f.stasisTimer, 0.25);
+              }
+            });
+          } else if (z.kind === 'sanctuary') {
+            world.fighters.forEach(f => {
+              if (f.respawnTimer <= 0 && Math.hypot(f.wx - z.wx, f.wy - z.wy) <= z.radius) {
+                f.hp = Math.min(f.maxHp, f.hp + 24 * dt);
+              }
+            });
+          } else if (z.kind === 'cloud') {
+            const owner = world.fighters.find(f => f.id === z.ownerId);
+            world.fighters.forEach(f => {
+              if (f.id !== z.ownerId && f.respawnTimer <= 0 && Math.hypot(f.wx - z.wx, f.wy - z.wy) <= z.radius) {
+                f.hp -= 16 * dt;
+                if (f.hp <= 0) handleFighterKO(world, f, owner);
+              }
+            });
+          } else if (z.kind === 'grav') {
+            world.fighters.forEach(f => {
+              if (f.id !== z.ownerId && f.respawnTimer <= 0) {
+                const d = Math.hypot(z.wx - f.wx, z.wy - f.wy);
+                if (d < z.radius && d > 10) {
+                  const ang = Math.atan2(z.wy - f.wy, z.wx - f.wx);
+                  f.vx += Math.cos(ang) * 520 * dt;
+                  f.vy += Math.sin(ang) * 520 * dt;
+                }
+              }
+            });
+          }
+
+          if (z.life <= 0) world.zones.splice(i, 1);
+        }
+
+        // Update Particles & Floating Texts
+        for (let i = world.particles.length - 1; i >= 0; i--) {
+          const pt = world.particles[i];
+          pt.life -= dt;
+          pt.wx += pt.vx * dt;
+          pt.wy += pt.vy * dt;
+          pt.wz += pt.vz * dt;
+          pt.vz -= 680 * dt;
+          if (pt.wz < 0) { pt.wz = 0; pt.vz *= -0.45; }
+          if (pt.life <= 0) world.particles.splice(i, 1);
+        }
+
+        for (let i = world.floatingTexts.length - 1; i >= 0; i--) {
+          const ft = world.floatingTexts[i];
+          ft.life -= dt;
+          ft.wz += 28 * dt;
+          if (ft.life <= 0) world.floatingTexts.splice(i, 1);
+        }
+
+        if (Array.isArray(world.killFeed)) {
+          for (let i = world.killFeed.length - 1; i >= 0; i--) {
+            world.killFeed[i].life -= dt;
+            if (world.killFeed[i].life <= 0) world.killFeed.splice(i, 1);
+          }
+        }
+      }
+
+      // =========================================================
+      // 11. 2.5D PIXEL RENDERER (ARENA, PROPS, SPRITES, EFFECTS)
+      // =========================================================
+      function renderWorld25D(canvas, world, cam, focusPlayerId = null) {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+        if (W === 0 || H === 0) return;
+
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = '#060a12';
+        ctx.fillRect(0, 0, W, H);
+
+        const mapDef = ARENA_MAPS.find(m => m.id === GAME.selectedMapId) || ARENA_MAPS[0];
+        const { halfW, halfH } = getArenaBounds(world.isPreview ? 0.55 : GAME.mapScale);
+
+        // Draw Isometric Floor Grid
+        const tile = 64;
+        for (let gx = -halfW; gx < halfW; gx += tile) {
+          for (let gy = -halfH; gy < halfH; gy += tile) {
+            const tw = Math.min(tile, halfW - gx);
+            const th = Math.min(tile, halfH - gy);
+            const p1 = worldToScreen(gx, gy, 0, cam, W, H);
+            const p2 = worldToScreen(gx + tw, gy + th, 0, cam, W, H);
+            const checker = ((Math.floor((gx + halfW) / tile) + Math.floor((gy + halfH) / tile)) % 2) === 0;
+            ctx.fillStyle = checker ? mapDef.floorA : mapDef.floorB;
+            ctx.fillRect(Math.floor(p1.x), Math.floor(p1.y), Math.ceil(p2.x - p1.x) + 1, Math.ceil(p2.y - p1.y) + 1);
+          }
+        }
+
+        // Arena Outer Rim & 2.5D Front Wall Skirt
+        const tl = worldToScreen(-halfW, -halfH, 0, cam, W, H);
+        const br = worldToScreen(halfW, halfH, 0, cam, W, H);
+        ctx.strokeStyle = mapDef.trim;
+        ctx.lineWidth = Math.max(2, 3 * cam.zoom);
+        ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+
+        ctx.fillStyle = '#0c1322';
+        ctx.fillRect(tl.x, br.y, br.x - tl.x, 18 * cam.zoom);
+
+        // Draw Floor Hazards & Zones
+        world.hazards.forEach(h => {
+          const sp = worldToScreen(h.wx, h.wy, 0, cam, W, H);
+          ctx.save();
+          ctx.beginPath();
+          ctx.ellipse(sp.x, sp.y, h.radius * cam.zoom, h.radius * 0.66 * cam.zoom, 0, 0, Math.PI * 2);
+          ctx.fillStyle = h.color + '33';
+          ctx.fill();
+          ctx.strokeStyle = h.color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        world.zones.forEach(z => {
+          const sp = worldToScreen(z.wx, z.wy, 2, cam, W, H);
+          ctx.save();
+          ctx.beginPath();
+          ctx.ellipse(sp.x, sp.y, z.radius * cam.zoom, z.radius * 0.66 * cam.zoom, 0, 0, Math.PI * 2);
+          ctx.fillStyle = z.color + '2e';
+          ctx.fill();
+          ctx.strokeStyle = z.color;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // Draw Health Potions
+        world.potions.forEach(pot => {
+          const bob = Math.sin(performance.now() * 0.006) * 4;
+          const sp = worldToScreen(pot.wx, pot.wy, 8 + bob, cam, W, H);
+          const s = 10 * cam.zoom;
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(sp.x - s * 0.5, sp.y - s * 0.5, s, s);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(sp.x - s * 0.15, sp.y - s * 0.35, s * 0.3, s * 0.7);
+          ctx.fillRect(sp.x - s * 0.35, sp.y - s * 0.15, s * 0.7, s * 0.3);
+        });
+
+        // Depth-sort Props & Fighters by Y coordinate
+        const renderables = [];
+        world.props.forEach(p => renderables.push({ sortY: p.wy, kind: 'prop', obj: p }));
+        world.fighters.forEach(f => {
+          if (f.respawnTimer <= 0) renderables.push({ sortY: f.wy, kind: 'fighter', obj: f });
+        });
+        renderables.sort((a, b) => a.sortY - b.sortY);
+
+        renderables.forEach(item => {
+          if (item.kind === 'prop') {
+            const p = item.obj;
+            const base = worldToScreen(p.wx, p.wy, 0, cam, W, H);
+            const pw = p.w * cam.zoom;
+            const ph = p.h * 0.66 * cam.zoom;
+            const pz = p.z * cam.zoom;
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(base.x - pw * 0.52, base.y - ph * 0.45, pw * 1.04, ph * 0.95);
+
+            // Front Extruded Wall
+            ctx.fillStyle = p.hitFlash > 0 ? '#ffffff' : p.color;
+            ctx.fillRect(base.x - pw * 0.5, base.y - ph * 0.5 - pz, pw, ph + pz);
+
+            // Top Face
+            ctx.fillStyle = p.hitFlash > 0 ? '#ffffff' : p.top;
+            ctx.fillRect(base.x - pw * 0.5, base.y - ph * 0.5 - pz, pw, ph);
+
+            // Damage Cracks & Mini HP Bar when damaged
+            if (p.hp < p.maxHp) {
+              ctx.strokeStyle = '#090d16';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(base.x - pw * 0.2, base.y - pz);
+              ctx.lineTo(base.x + pw * 0.15, base.y - pz + ph * 0.4);
+              ctx.stroke();
+
+              const barW = Math.max(24, pw * 0.85);
+              ctx.fillStyle = '#090d16';
+              ctx.fillRect(base.x - barW * 0.5, base.y - ph * 0.5 - pz - 8, barW, 4);
+              ctx.fillStyle = '#facc15';
+              ctx.fillRect(base.x - barW * 0.5, base.y - ph * 0.5 - pz - 8, barW * (p.hp / p.maxHp), 4);
+            }
+          } else {
+            const f = item.obj;
+            const floorPt = worldToScreen(f.wx, f.wy, 0, cam, W, H);
+            const bodyPt = worldToScreen(f.wx, f.wy, f.wz, cam, W, H);
+
+            // Self-Locator Ring for Local Player (Super clear on mobile!)
+            if (focusPlayerId && f.id === focusPlayerId) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.ellipse(floorPt.x, floorPt.y, 26 * cam.zoom, 17 * cam.zoom, 0, 0, Math.PI * 2);
+              ctx.strokeStyle = '#22d3ee';
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
+
+              // Aim Pointer Arrow
+              const ax = floorPt.x + Math.cos(f.aimAngle) * 34 * cam.zoom;
+              const ay = floorPt.y + Math.sin(f.aimAngle) * 22 * cam.zoom;
+              ctx.fillStyle = '#fde047';
+              ctx.beginPath();
+              ctx.arc(ax, ay, 4 * cam.zoom, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+
+            // Ground Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.beginPath();
+            ctx.ellipse(floorPt.x, floorPt.y, 15 * cam.zoom, 9 * cam.zoom, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Multi-Stage Hit Flash Selection (White -> Orange -> Crimson)
+            let flashStage = 0;
+            if (f.flashTimer > 0.16) flashStage = 1;
+            else if (f.flashTimer > 0.08) flashStage = 2;
+            else if (f.flashTimer > 0) flashStage = 3;
+
+            const sprite = (SPRITE_CACHE[f.charId] || SPRITE_CACHE.knight)[flashStage];
+            const drawW = 42 * cam.zoom * f.squashX;
+            const drawH = 49 * cam.zoom * f.squashY;
+
+            ctx.save();
+            ctx.translate(bodyPt.x, bodyPt.y - drawH * 0.42);
+            ctx.scale(f.facing, 1);
+            ctx.drawImage(sprite, -drawW * 0.5, -drawH * 0.5, drawW, drawH);
+            ctx.restore();
+
+            // Oversized Pixel Gauntlet Thrusting in Aim Direction
+            const thrust = (16 + (f.punchAnim > 0 ? 16 : 0)) * cam.zoom;
+            const gx = bodyPt.x + Math.cos(f.aimAngle) * thrust;
+            const gy = bodyPt.y - 16 * cam.zoom + Math.sin(f.aimAngle) * thrust * 0.66;
+            const gSize = 8 * cam.zoom;
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(gx - gSize * 0.6, gy - gSize * 0.6, gSize * 1.2, gSize * 1.2);
+            ctx.fillStyle = f.charDef.accent;
+            ctx.fillRect(gx - gSize * 0.45, gy - gSize * 0.45, gSize * 0.9, gSize * 0.9);
+
+            // Active Status Auras (Chrono Stasis Cage, Shield, Mirror, Overdrive)
+            if (f.stasisTimer > 0) {
+              ctx.strokeStyle = '#fde047';
+              ctx.lineWidth = 2.5;
+              ctx.strokeRect(bodyPt.x - drawW * 0.55, bodyPt.y - drawH * 0.95, drawW * 1.1, drawH);
+            }
+            if (f.shieldTimer > 0 || f.mirrorTimer > 0) {
+              ctx.beginPath();
+              ctx.arc(bodyPt.x, bodyPt.y - drawH * 0.45, 26 * cam.zoom, 0, Math.PI * 2);
+              ctx.strokeStyle = f.mirrorTimer > 0 ? '#e879f9' : '#38bdf8';
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
+            }
+            if (f.overdriveTimer > 0) {
+              ctx.beginPath();
+              ctx.arc(bodyPt.x, bodyPt.y - drawH * 0.45, 29 * cam.zoom, 0, Math.PI * 2);
+              ctx.strokeStyle = '#facc15';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+
+            // Nameplate & Health Bar
+            const topY = bodyPt.y - drawH - 12 * cam.zoom;
+            const barW = 44 * cam.zoom;
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(bodyPt.x - barW * 0.5 - 1, topY - 1, barW + 2, 6 * cam.zoom + 2);
+            ctx.fillStyle = f.isHuman ? '#22d3ee' : '#f43f5e';
+            ctx.fillRect(bodyPt.x - barW * 0.5, topY, barW * Math.max(0, f.hp / f.maxHp), 6 * cam.zoom);
+
+            ctx.font = `bold ${Math.max(9, Math.round(10 * cam.zoom))}px Inter, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = f.isHuman ? '#67e8f9' : '#f8fafc';
+            ctx.fillText(f.name, bodyPt.x, topY - 4);
+          }
+        });
+
+        // Draw Projectiles & Segmented Grapple Chains
+        world.projectiles.forEach(p => {
+          const sp = worldToScreen(p.wx, p.wy, p.wz, cam, W, H);
+          if (p.kind === 'grapple' && p.ownerId) {
+            const owner = world.fighters.find(f => f.id === p.ownerId);
+            if (owner) {
+              const op = worldToScreen(owner.wx, owner.wy, owner.wz + 12, cam, W, H);
+              const links = 8;
+              for (let l = 1; l <= links; l++) {
+                const t = l / links;
+                const lx = op.x + (sp.x - op.x) * t;
+                const ly = op.y + (sp.y - op.y) * t;
+                ctx.fillStyle = l % 2 === 0 ? '#cbd5e1' : '#64748b';
+                ctx.fillRect(lx - 3 * cam.zoom, ly - 3 * cam.zoom, 6 * cam.zoom, 6 * cam.zoom);
+              }
+            }
+          }
+          const r = Math.max(4, p.radius * 0.65 * cam.zoom);
+          ctx.fillStyle = '#090d16';
+          ctx.fillRect(sp.x - r - 1.5, sp.y - r - 1.5, (r + 1.5) * 2, (r + 1.5) * 2);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(sp.x - r, sp.y - r, r * 2, r * 2);
+        });
+
+        // Draw Bouncing 2.5D Pixels
+        world.particles.forEach(pt => {
+          const sp = worldToScreen(pt.wx, pt.wy, pt.wz, cam, W, H);
+          const s = pt.size * cam.zoom;
+          ctx.fillStyle = pt.color;
+          ctx.fillRect(sp.x - s * 0.5, sp.y - s * 0.5, s, s);
+        });
+
+        // Draw Floating Combat Numbers
+        world.floatingTexts.forEach(ft => {
+          const sp = worldToScreen(ft.wx, ft.wy, ft.wz, cam, W, H);
+          ctx.font = `800 ${Math.max(10, Math.round(11 * cam.zoom))}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#090d16';
+          ctx.fillText(ft.text, sp.x + 1, sp.y + 1);
+          ctx.fillStyle = ft.color;
+          ctx.fillText(ft.text, sp.x, sp.y);
+        });
+
+        // Kill Feed Overlay (Top-Left under HUD)
+        if (!world.isPreview && Array.isArray(world.killFeed) && world.killFeed.length > 0) {
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          world.killFeed.forEach((kf, idx) => {
+            const y = 68 + idx * 20;
+            ctx.fillStyle = 'rgba(9, 13, 22, 0.72)';
+            ctx.fillRect(12, y - 12, 210, 17);
+            ctx.fillStyle = '#fda4af';
+            ctx.fillText('⚔️ ' + kf.text, 18, y);
+          });
+        }
+      }
+
+      // =========================================================
+      // 12. ONLINE MULTIPLAYER (SANDBOX-SAFE RELAY + ROOM BROWSER)
+      // =========================================================
+      const NET = {
+        active: false,
+        isHost: false,
+        roomCode: '',
+        isPublic: true,
+        localId: 'usr_' + Math.random().toString(36).slice(2, 8),
+        peers: {},
+        channel: null,
+        heartbeatTimer: null
+      };
+
+      const ROOM_STORAGE_KEY = 'aether_forge_online_rooms_v1';
+
+      function initOnlineRelay() {
+        try {
+          if ('BroadcastChannel' in window) {
+            NET.channel = new BroadcastChannel('aether_forge_relay_v1');
+            NET.channel.onmessage = (ev) => handleRelayMessage(ev.data);
+          }
+        } catch (err) {
+          // Graceful fallback if BroadcastChannel is restricted
+        }
+        window.addEventListener('storage', (ev) => {
+          if (ev.key === ROOM_STORAGE_KEY) {
+            renderPublicServerBrowser();
+            if (NET.active) syncRoomRosterFromStorage();
+          }
+        });
+      }
+
+      function readStoredRooms() {
+        try {
+          const raw = localStorage.getItem(ROOM_STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : {};
+          const now = Date.now();
+          // Prune stale rooms older than 30s
+          Object.keys(parsed).forEach(code => {
+            if (now - (parsed[code].updatedAt || 0) > 30000) delete parsed[code];
+          });
+          return parsed;
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function writeStoredRooms(rooms) {
+        try {
+          localStorage.setItem(ROOM_STORAGE_KEY, JSON.stringify(rooms));
+        } catch (e) {}
+      }
+
+      function handleRelayMessage(msg) {
+        if (!msg || !msg.roomCode || msg.roomCode !== NET.roomCode) return;
+        if (msg.type === 'state' && msg.fighter && msg.senderId !== NET.localId) {
+          let remote = WORLD.fighters.find(f => f.id === msg.senderId);
+          if (!remote && GAME.state === 'playing') {
+            remote = createFighter({
+              id: msg.senderId,
+              name: msg.fighter.name,
+              charId: msg.fighter.charId,
+              isHuman: false,
+              isRemote: true,
+              x: msg.fighter.wx,
+              y: msg.fighter.wy
+            });
+            WORLD.fighters.push(remote);
+          }
+          if (remote) {
+            remote.wx = msg.fighter.wx;
+            remote.wy = msg.fighter.wy;
+            remote.wz = msg.fighter.wz;
+            remote.facing = msg.fighter.facing;
+            remote.aimAngle = msg.fighter.aimAngle;
+            remote.hp = msg.fighter.hp;
+            remote.maxHp = msg.fighter.maxHp;
+            remote.kos = msg.fighter.kos;
+          }
+        } else if (msg.type === 'launch' && !NET.isHost) {
+          GAME.selectedMapId = msg.mapId || GAME.selectedMapId;
+          GAME.mode = msg.mode || GAME.mode;
+          startNewMatch(true);
+        }
+      }
+
+      function broadcastRelay(payload) {
+        if (!NET.active || !NET.roomCode) return;
+        const packet = { ...payload, roomCode: NET.roomCode, senderId: NET.localId };
+        try {
+          if (NET.channel) NET.channel.postMessage(packet);
+        } catch (e) {}
+      }
+
+      function syncRoomRosterFromStorage() {
+        const rooms = readStoredRooms();
+        const room = rooms[NET.roomCode];
+        if (!room) return;
+        const pName = (document.getElementById('inputPlayerName')?.value || 'PLAYER').trim() || 'PLAYER';
+        room.players = room.players || {};
+        room.players[NET.localId] = {
+          id: NET.localId,
+          name: pName,
+          charId: GAME.selectedCharId,
+          isHost: NET.isHost,
+          ts: Date.now()
+        };
+        // Clean stale members > 12s
+        Object.keys(room.players).forEach(pid => {
+          if (Date.now() - room.players[pid].ts > 12000) delete room.players[pid];
+        });
+        room.updatedAt = Date.now();
+        rooms[NET.roomCode] = room;
+        writeStoredRooms(rooms);
+        NET.peers = room.players;
+        renderOnlineRoomPanel();
+      }
+
+      function createOnlineRoom(isPublic = true) {
+        SFX.ensure();
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        NET.active = true;
+        NET.isHost = true;
+        NET.roomCode = code;
+        NET.isPublic = isPublic;
+
+        const pName = (document.getElementById('inputPlayerName')?.value || 'HOST_P1').trim() || 'HOST_P1';
+        const rooms = readStoredRooms();
+        rooms[code] = {
+          code,
+          hostName: pName,
+          isPublic,
+          mapId: GAME.selectedMapId,
+          mode: GAME.mode,
+          updatedAt: Date.now(),
+          players: {
+            [NET.localId]: { id: NET.localId, name: pName, charId: GAME.selectedCharId, isHost: true, ts: Date.now() }
+          }
+        };
+        writeStoredRooms(rooms);
+        NET.peers = rooms[code].players;
+
+        clearInterval(NET.heartbeatTimer);
+        NET.heartbeatTimer = setInterval(syncRoomRosterFromStorage, 2000);
+        renderOnlineRoomPanel();
+        renderPublicServerBrowser();
+        showToast(`🌐 Created ${isPublic ? 'Public' : 'Private'} Server: ${code}`, 'indigo');
+      }
+
+      function joinOnlineRoom(codeInput) {
+        SFX.ensure();
+        const code = (codeInput || '').trim().toUpperCase();
+        if (code.length < 4) {
+          showToast('Enter a valid 5-letter Room Code!', 'rose');
+          return;
+        }
+        const rooms = readStoredRooms();
+        const room = rooms[code];
+        NET.active = true;
+        NET.isHost = false;
+        NET.roomCode = code;
+        NET.isPublic = room ? room.isPublic : true;
+
+        if (!room) {
+          // Create room entry if joining cross-device via code
+          const pName = (document.getElementById('inputPlayerName')?.value || 'GUEST').trim() || 'GUEST';
+          rooms[code] = {
+            code,
+            hostName: pName,
+            isPublic: true,
+            mapId: GAME.selectedMapId,
+            mode: GAME.mode,
+            updatedAt: Date.now(),
+            players: {}
+          };
+          writeStoredRooms(rooms);
+        }
+
+        syncRoomRosterFromStorage();
+        clearInterval(NET.heartbeatTimer);
+        NET.heartbeatTimer = setInterval(syncRoomRosterFromStorage, 2000);
+        renderOnlineRoomPanel();
+        showToast(`🔗 Connected to Room ${code}!`, 'emerald');
+      }
+
+      function leaveOnlineRoom() {
+        if (NET.active && NET.roomCode) {
+          const rooms = readStoredRooms();
+          if (rooms[NET.roomCode] && rooms[NET.roomCode].players) {
+            delete rooms[NET.roomCode].players[NET.localId];
+            if (Object.keys(rooms[NET.roomCode].players).length === 0) {
+              delete rooms[NET.roomCode];
+            }
+            writeStoredRooms(rooms);
+          }
+        }
+        NET.active = false;
+        NET.isHost = false;
+        NET.roomCode = '';
+        NET.peers = {};
+        clearInterval(NET.heartbeatTimer);
+        renderOnlineRoomPanel();
+        renderPublicServerBrowser();
+      }
+
+      function renderOnlineRoomPanel() {
+        const panel = document.getElementById('activeRoomPanel');
+        const banner = document.getElementById('netStatusBanner');
+        if (!panel) return;
+        if (!NET.active) {
+          panel.classList.add('hidden');
+          if (banner) banner.textContent = 'Host a server or join friends via live browser, 5-letter code, or invite link.';
+          return;
+        }
+        panel.classList.remove('hidden');
+        document.getElementById('displayRoomCode').textContent = NET.roomCode;
+        document.getElementById('displayRoomPrivacy').textContent = NET.isPublic ? 'PUBLIC' : 'PRIVATE';
+        if (banner) {
+          banner.textContent = `🟢 Connected to Room ${NET.roomCode} (${NET.isHost ? 'You are Host' : 'Connected as Guest'})`;
+        }
+        const rosterEl = document.getElementById('onlineRosterList');
+        const players = Object.values(NET.peers);
+        rosterEl.innerHTML = players.map(p => `
+          <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+            <span class="font-bold text-white">🟢 ${escapeHtml(p.name)}</span>
+            <span class="text-[0.65rem] font-bold text-cyan-300">${p.isHost ? '👑 HOST' : 'PLAYER'}</span>
+          </div>
+        `).join('');
+      }
+
+      function renderPublicServerBrowser() {
+        const listEl = document.getElementById('publicServersList');
+        if (!listEl) return;
+        const rooms = Object.values(readStoredRooms()).filter(r => r.isPublic);
+        if (rooms.length === 0) {
+          listEl.innerHTML = `<div class="text-slate-400 italic py-3 text-center">No active public servers right now — click <strong>PUBLIC SERVER</strong> above to host one!</div>`;
+          return;
+        }
+        listEl.innerHTML = rooms.map(r => {
+          const count = Object.keys(r.players || {}).length;
+          return `
+            <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 border border-slate-800">
+              <div>
+                <div class="font-bold text-white">${escapeHtml(r.hostName)}'s Arena <span class="text-amber-300 font-pixel text-[0.65rem] ml-1">[${r.code}]</span></div>
+                <div class="text-[0.65rem] text-slate-400">Map: ${(r.mapId || 'metro').toUpperCase()} • ${count} Player(s)</div>
+              </div>
+              <button data-join-code="${r.code}" class="btn-join-server btn-arcade px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs">
+                ⚡ JOIN
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        listEl.querySelectorAll('.btn-join-server').forEach(btn => {
+          btn.onclick = () => joinOnlineRoom(btn.getAttribute('data-join-code'));
+        });
+      }
+
+      // =========================================================
+      // 13. UI RENDERING, MODALS, PODIUM & MATCH LIFECYCLE
+      // =========================================================
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+      }
+
+      function showToast(msg, tone = 'sky') {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const colors = {
+          sky: 'bg-sky-950/95 border-sky-400 text-sky-100',
+          emerald: 'bg-emerald-950/95 border-emerald-400 text-emerald-100',
+          amber: 'bg-amber-950/95 border-amber-400 text-amber-100',
+          rose: 'bg-rose-950/95 border-rose-400 text-rose-100',
+          indigo: 'bg-indigo-950/95 border-indigo-400 text-indigo-100'
+        };
+        const el = document.createElement('div');
+        el.className = `px-3.5 py-2 rounded-xl border text-xs font-bold shadow-xl transition-all duration-300 ${colors[tone] || colors.sky}`;
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-6px)';
+          setTimeout(() => el.remove(), 300);
+        }, 2400);
+      }
+
+      function applyUiScale(val) {
+        GAME.uiScale = Math.max(0.75, Math.min(1.30, Math.round(val * 100) / 100));
+        document.documentElement.style.setProperty('--ui-scale', GAME.uiScale);
+        const pct = Math.round(GAME.uiScale * 100) + '%';
+        const l1 = document.getElementById('hudUiScaleLabel');
+        const l2 = document.getElementById('startUiScaleLabel');
+        if (l1) l1.textContent = pct;
+        if (l2) l2.textContent = pct;
+      }
+
+      function applyMapScale(val) {
+        GAME.mapScale = Math.max(0.6, Math.min(2.0, Math.round(val * 10) / 10));
+        const lbl = GAME.mapScale.toFixed(1) + 'x';
+        ['hudMapScaleLabel', 'startMapScaleLabel', 'podiumMapScaleLabel'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = lbl;
+        });
+      }
+
+      function setGameMode(mode) {
+        GAME.mode = mode === 'anything' ? 'anything' : 'normal';
+        const btnN = document.getElementById('btnModeNormal');
+        const btnA = document.getElementById('btnModeAnything');
+        const desc = document.getElementById('modeDescText');
+        const badge = document.getElementById('hudModeBadge');
+
+        if (GAME.mode === 'normal') {
+          btnN.className = 'btn-arcade py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm bg-sky-500 text-slate-950 border-2 border-sky-300 shadow-lg';
+          btnA.className = 'btn-arcade py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm bg-slate-800 text-slate-300 border-2 border-slate-700 hover:border-rose-400';
+          desc.innerHTML = '<strong>Balanced Arena:</strong> 12 FP starting budget, direct Skill Picker (no flowchart), and fair multi-hit scaling.';
+          if (badge) {
+            badge.textContent = '⚖️ NORMAL';
+            badge.className = 'px-2 py-1 rounded-lg text-[0.65rem] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40';
+          }
+        } else {
+          btnA.className = 'btn-arcade py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm bg-rose-500 text-white border-2 border-rose-300 shadow-lg';
+          btnN.className = 'btn-arcade py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm bg-slate-800 text-slate-300 border-2 border-slate-700 hover:border-sky-400';
+          desc.innerHTML = '<strong>Anything Goes Chaos:</strong> 999 FP unlimited budget, full 3-Stage Workflow Flowchart, and 0.5x–3.0x power sliders!';
+          if (badge) {
+            badge.textContent = '🔥 ANYTHING GOES';
+            badge.className = 'px-2 py-1 rounded-lg text-[0.65rem] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
+          }
+        }
+
+        const human = getLocalFighter();
+        if (human) enforceForgeBudget(human);
+      }
+
+      // Render 8 Classic Pixel-Art Fighter Cards (Matches image_f3347a.png)
+      function renderCharacterRosterGrid() {
+        const grid = document.getElementById('charRosterGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        CHARACTER_ROSTER.forEach(ch => {
+          const selected = ch.id === GAME.selectedCharId;
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = `btn-arcade relative flex flex-col items-center justify-between p-2 rounded-xl border transition-all ${
+            selected
+              ? 'bg-sky-950/90 border-cyan-400 ring-2 ring-cyan-400/50 shadow-lg'
+              : 'bg-slate-900/90 border-slate-800 hover:border-slate-600'
+          }`;
+
+          // Top row: Class Icon + P1 Badge
+          const topRow = document.createElement('div');
+          topRow.className = 'w-full flex items-center justify-between text-[0.65rem] mb-1';
+          topRow.innerHTML = `<span>${ch.icon}</span>${selected ? '<span class="font-pixel text-[0.55rem] text-amber-300">P1</span>' : '<span></span>'}`;
+          card.appendChild(topRow);
+
+          // Crisp Scaled Pixel Sprite Canvas
+          const spriteCanvas = document.createElement('canvas');
+          spriteCanvas.width = 48;
+          spriteCanvas.height = 56;
+          spriteCanvas.className = 'w-11 h-13 my-0.5';
+          const sctx = spriteCanvas.getContext('2d');
+          sctx.imageSmoothingEnabled = false;
+          const baseSprite = (SPRITE_CACHE[ch.id] || SPRITE_CACHE.knight)[0];
+          sctx.drawImage(baseSprite, 0, 0, 48, 56);
+          card.appendChild(spriteCanvas);
+
+          // Bottom Pixel Name
+          const nameEl = document.createElement('div');
+          nameEl.className = 'font-pixel text-[0.55rem] mt-1 tracking-tight';
+          nameEl.style.color = ch.primary;
+          nameEl.textContent = ch.shortName;
+          card.appendChild(nameEl);
+
+          card.onclick = () => {
+            SFX.ensure();
+            SFX.playTone(520, 0.08, 'square', 0.08);
+            GAME.selectedCharId = ch.id;
+            const lbl = document.getElementById('selectedCharLabel');
+            if (lbl) lbl.textContent = ch.name;
+            renderCharacterRosterGrid();
+          };
+          grid.appendChild(card);
+        });
+      }
+
+      function renderMapPickerGrids() {
+        ['startMapGrid', 'podiumMapGrid'].forEach(gridId => {
+          const grid = document.getElementById(gridId);
+          if (!grid) return;
+          grid.innerHTML = ARENA_MAPS.map(m => {
+            const active = m.id === GAME.selectedMapId;
+            return `
+              <button type="button" data-map-id="${m.id}" class="map-pick-btn btn-arcade text-left p-2 rounded-xl border transition-all ${
+                active
+                  ? 'bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/60'
+                  : 'bg-slate-900 border-slate-800 hover:border-slate-600'
+              }">
+                <div class="flex items-center gap-1.5 text-xs font-extrabold text-white">
+                  <span>${m.icon}</span>
+                  <span class="truncate">${m.name}</span>
+                </div>
+                <div class="text-[0.62rem] text-slate-400 mt-0.5 line-clamp-1">${m.gimmick}</div>
+              </button>
+            `;
+          }).join('');
+
+          grid.querySelectorAll('.map-pick-btn').forEach(btn => {
+            btn.onclick = () => {
+              SFX.ensure();
+              SFX.playTone(460, 0.08, 'square', 0.08);
+              GAME.selectedMapId = btn.getAttribute('data-map-id');
+              renderMapPickerGrids();
+            };
+          });
+        });
+      }
+
+      function getLocalFighter() {
+        return WORLD.fighters.find(f => f.isHuman) || WORLD.fighters[0] || null;
+      }
+
+      function startNewMatch(fromRemoteLaunch = false) {
+        SFX.ensure();
+        GAME.state = 'playing';
+        GAME.arenaSize = parseInt(document.getElementById('selectArenaSize')?.value || '4', 10);
+        GAME.botDiff = document.getElementById('selectBotDiff')?.value || 'fighter';
+        GAME.matchDuration = parseInt(document.getElementById('selectMatchTime')?.value || '150', 10);
+        GAME.timeLeft = GAME.matchDuration;
+
+        // Auto-enable follow camera on compact/mobile screens so player stays clearly visible
+        if (window.innerWidth < 820) {
+          GAME.followCam = true;
+        }
+
+        const pName = (document.getElementById('inputPlayerName')?.value || 'AETHER_P1').trim() || 'AETHER_P1';
+        const { halfW, halfH } = getArenaBounds(GAME.mapScale);
+
+        WORLD.fighters = [];
+        WORLD.particles = [];
+        WORLD.floatingTexts = [];
+        WORLD.killFeed = [];
+        loadArenaMap(WORLD, GAME.selectedMapId, GAME.mapScale);
+
+        // Spawn Local Human Player
+        const human = createFighter({
+          id: NET.localId,
+          name: pName,
+          charId: GAME.selectedCharId,
+          isHuman: true,
+          x: -halfW * 0.35,
+          y: 0
+        });
+        WORLD.fighters.push(human);
+
+        // Spawn Connected Online Peers
+        if (NET.active) {
+          Object.values(NET.peers).forEach((peer, idx) => {
+            if (peer.id !== NET.localId) {
+              const ang = ((idx + 1) / Math.max(2, Object.keys(NET.peers).length)) * Math.PI * 2;
+              WORLD.fighters.push(createFighter({
+                id: peer.id,
+                name: peer.name || 'PLAYER',
+                charId: peer.charId || 'striker',
+                isHuman: false,
+                isRemote: true,
+                x: Math.cos(ang) * (halfW * 0.45),
+                y: Math.sin(ang) * (halfH * 0.45)
+              }));
+            }
+          });
+          if (NET.isHost && !fromRemoteLaunch) {
+            broadcastRelay({ type: 'launch', mapId: GAME.selectedMapId, mode: GAME.mode });
+          }
+        }
+
+        // Fill remaining slots with AI Bots (Always in Solo; optional in Online)
+        const fillBots = !NET.active || document.getElementById('chkFillBotsOnline')?.checked;
+        if (fillBots) {
+          while (WORLD.fighters.length < GAME.arenaSize) {
+            const idx = WORLD.fighters.length;
+            const ang = (idx / GAME.arenaSize) * Math.PI * 2;
+            const botChar = CHARACTER_ROSTER[idx % CHARACTER_ROSTER.length];
+            const botName = BOT_NAMES[(idx - 1) % BOT_NAMES.length];
+            WORLD.fighters.push(createFighter({
+              id: 'bot_' + idx,
+              name: botName,
+              charId: botChar.id,
+              isHuman: false,
+              x: Math.cos(ang) * (halfW * 0.55),
+              y: Math.sin(ang) * (halfH * 0.55)
+            }));
+          }
+        }
+
+        hideAllModals();
+        renderBottomSkillBar();
+        showToast(`⚔️ Battle Started on ${(ARENA_MAPS.find(m => m.id === GAME.selectedMapId) || ARENA_MAPS[0]).name}!`, 'cyan');
+      }
+
+      // =========================================================
+      // 14. ARMORY / SKILL FORGE & STAT UPGRADES UI
+      // =========================================================
+      function openForgeModal(defaultTab = 'skills') {
+        const modal = document.getElementById('forgeModal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const human = getLocalFighter();
+        if (human) {
+          GAME.draftSlot = human.activeSlot;
+          PREVIEW_WORLD.fighters = [
+            createFighter({ id: 'prev_att', name: human.name, charId: human.charId, isHuman: false, x: -115, y: 0 }),
+            createFighter({ id: 'prev_dum', name: 'TARGET DUMMY', charId: 'brawler', isHuman: false, x: 95, y: 0 })
+          ];
+          PREVIEW_WORLD.fighters[0].isPreviewAttacker = true;
+          PREVIEW_WORLD.fighters[0].slots = JSON.parse(JSON.stringify(human.slots));
+          PREVIEW_WORLD.fighters[0].unlockedSlots = human.unlockedSlots;
+          PREVIEW_WORLD.fighters[1].maxHp = 9999;
+          PREVIEW_WORLD.fighters[1].hp = 9999;
+          PREVIEW_WORLD.projectiles = [];
+          PREVIEW_WORLD.zones = [];
+          PREVIEW_WORLD.particles = [];
+          PREVIEW_WORLD.floatingTexts = [];
+          PREVIEW_WORLD.killFeed = [];
+          loadArenaMap(PREVIEW_WORLD, GAME.selectedMapId, 0.55);
+        }
+
+        switchForgeTab(defaultTab);
+        renderForgeModalUI();
+      }
+
+      function switchForgeTab(tab) {
+        GAME.activeForgeTab = tab === 'stats' ? 'stats' : 'skills';
+        const sTab = document.getElementById('forgeSkillsTab');
+        const stTab = document.getElementById('forgeStatsTab');
+        const bS = document.getElementById('tabBtnSkills');
+        const bSt = document.getElementById('tabBtnStats');
+
+        if (GAME.activeForgeTab === 'skills') {
+          sTab.classList.remove('hidden');
+          stTab.classList.add('hidden');
+          bS.className = 'px-3 py-1 rounded-lg text-xs font-extrabold bg-amber-500 text-slate-950';
+          bSt.className = 'px-3 py-1 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white';
+        } else {
+          sTab.classList.add('hidden');
+          stTab.classList.remove('hidden');
+          bSt.className = 'px-3 py-1 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950';
+          bS.className = 'px-3 py-1 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white';
+          renderStatsUpgradeGrid();
+        }
+      }
+
+      function renderForgeModalUI() {
+        const human = getLocalFighter();
+        if (!human) return;
+
+        const maxFp = getTotalForgePoints();
+        const usedFp = getUsedForgePoints(human);
+        const freeFp = Math.max(0, maxFp - usedFp);
+
+        document.getElementById('forgeFpCounter').textContent = GAME.mode === 'anything'
+          ? '∞ UNLIMITED FP'
+          : `${freeFp} / ${maxFp} FP Free`;
+        document.getElementById('forgeSpCounter').textContent = `${human.sp} SP Available`;
+
+        const banner = document.getElementById('forgeModeBanner');
+        banner.textContent = GAME.mode === 'normal'
+          ? 'NORMAL MODE: Direct Skill Picker — click any skill below to equip it into your active slot.'
+          : 'ANYTHING GOES MODE: Full 3-Stage Node Workflow Flowchart + Uncapped Sliders!';
+
+        // Render 10 Slot Buttons
+        const slotsGrid = document.getElementById('forgeSlotsGrid');
+        slotsGrid.innerHTML = '';
+        for (let i = 0; i < 10; i++) {
+          const unlocked = i < human.unlockedSlots;
+          const active = i === GAME.draftSlot;
+          const wf = human.slots[i];
+          const sk = getSkillById(wf.skillId);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `btn-arcade px-2.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1 ${
+            !unlocked
+              ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed'
+              : active
+                ? 'bg-amber-500 text-slate-950 border-amber-300 shadow'
+                : 'bg-slate-900 border-slate-700 text-slate-200 hover:border-amber-400'
+          }`;
+          btn.innerHTML = unlocked
+            ? `<span>[${i === 9 ? 0 : i + 1}]</span><span>${sk.icon}</span><span class="hidden sm:inline">${sk.name}</span>`
+            : `<span>🔒 #${i + 1}</span>`;
+          btn.onclick = () => {
+            if (!unlocked) {
+              showToast('Unlock this slot using KOs (1 KO per slot)!', 'amber');
+              return;
+            }
+            GAME.draftSlot = i;
+            human.activeSlot = i;
+            if (PREVIEW_WORLD.fighters[0]) PREVIEW_WORLD.fighters[0].cooldowns[i] = 0;
+            renderForgeModalUI();
+            renderBottomSkillBar();
+          };
+          slotsGrid.appendChild(btn);
+        }
+
+        const editor = document.getElementById('forgeSkillEditorPanel');
+        const draftWf = human.slots[GAME.draftSlot] || createDefaultWorkflow('punch');
+
+        if (GAME.mode === 'normal') {
+          // NORMAL MODE: Clean Direct Skill Picker (NO Flowchart!)
+          editor.innerHTML = `
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-xs font-extrabold text-sky-300 uppercase tracking-wider">Select Skill for Slot #${GAME.draftSlot + 1}</span>
+              <span class="text-[0.68rem] text-slate-400">Current Cost: <strong class="text-amber-300">${calculateSlotCost(draftWf)} FP</strong></span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              ${BASE_SKILLS.map(sk => {
+                const isEquipped = draftWf.skillId === sk.id;
+                const costDiff = sk.fp - getSkillById(draftWf.skillId).fp;
+                const canAfford = isEquipped || (usedFp + costDiff <= maxFp);
+                return `
+                  <button type="button" data-pick-skill="${sk.id}" class="pick-skill-btn btn-arcade text-left p-2.5 rounded-xl border transition-all ${
+                    isEquipped
+                      ? 'bg-sky-500/20 border-sky-400 ring-1 ring-sky-400'
+                      : canAfford
+                        ? 'bg-slate-900 border-slate-800 hover:border-slate-600'
+                        : 'bg-slate-950/60 border-slate-900 opacity-50'
+                  }">
+                    <div class="flex items-center justify-between text-xs font-extrabold text-white">
+                      <span>${sk.icon} ${sk.name}</span>
+                      <span class="px-1.5 py-0.5 rounded bg-slate-950 text-amber-300 text-[0.65rem]">${sk.fp} FP</span>
+                    </div>
+                    <p class="text-[0.65rem] text-slate-400 mt-1 line-clamp-2">${sk.desc}</p>
+                    <div class="text-[0.6rem] text-slate-500 mt-1">DMG ${sk.dmg} • CD ${sk.cd}s</div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          `;
+        } else {
+          // ANYTHING GOES MODE: Full 3-Stage Node-Based Workflow Flowchart
+          editor.innerHTML = `
+            <div class="space-y-3">
+              <!-- Stage 1: On Shoot Trigger -->
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-indigo-500/40">
+                <div class="text-[0.68rem] font-extrabold text-indigo-300 uppercase mb-1.5">Stage 1 • On Shoot Trigger Node</div>
+                <div class="flex flex-wrap gap-1.5">
+                  ${STAGE1_TRIGGERS.map(tr => `
+                    <button type="button" data-trig="${tr.id}" class="wf-trig-btn px-2 py-1 rounded-lg text-[0.68rem] font-bold border ${
+                      draftWf.triggerId === tr.id ? 'bg-indigo-500 text-white border-indigo-300' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-indigo-400'
+                    }">${tr.icon} ${tr.name}</button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Stage 2: Base Skill + Uncapped Sliders -->
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-amber-500/40">
+                <div class="text-[0.68rem] font-extrabold text-amber-300 uppercase mb-1.5">Stage 2 • Base Skill & Overclock Sliders</div>
+                <div class="grid grid-cols-3 gap-2 mb-2.5 text-[0.68rem]">
+                  <label class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <div class="flex justify-between font-bold text-slate-300"><span>Size</span><span id="lblSizeM">${draftWf.sizeMult.toFixed(1)}x</span></div>
+                    <input id="rngSizeM" type="range" min="0.5" max="3.0" step="0.1" value="${draftWf.sizeMult}" class="w-full accent-amber-400 mt-1" />
+                  </label>
+                  <label class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <div class="flex justify-between font-bold text-slate-300"><span>Power</span><span id="lblPowerM">${draftWf.powerMult.toFixed(1)}x</span></div>
+                    <input id="rngPowerM" type="range" min="0.5" max="3.0" step="0.1" value="${draftWf.powerMult}" class="w-full accent-rose-400 mt-1" />
+                  </label>
+                  <label class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <div class="flex justify-between font-bold text-slate-300"><span>Speed</span><span id="lblSpeedM">${draftWf.speedMult.toFixed(1)}x</span></div>
+                    <input id="rngSpeedM" type="range" min="0.5" max="3.0" step="0.1" value="${draftWf.speedMult}" class="w-full accent-cyan-400 mt-1" />
+                  </label>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                  ${BASE_SKILLS.map(sk => `
+                    <button type="button" data-pick-skill="${sk.id}" class="pick-skill-btn text-left px-2 py-1.5 rounded-lg border text-[0.68rem] font-bold ${
+                      draftWf.skillId === sk.id ? 'bg-amber-500 text-slate-950 border-amber-300' : 'bg-slate-950 text-slate-200 border-slate-800 hover:border-amber-400'
+                    }">${sk.icon} ${sk.name}</button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Stage 3: On Hit Impact -->
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-rose-500/40">
+                <div class="text-[0.68rem] font-extrabold text-rose-300 uppercase mb-1.5">Stage 3 • On-Hit Impact Node</div>
+                <div class="flex flex-wrap gap-1.5">
+                  ${STAGE3_IMPACTS.map(im => `
+                    <button type="button" data-imp="${im.id}" class="wf-imp-btn px-2 py-1 rounded-lg text-[0.68rem] font-bold border ${
+                      draftWf.impactId === im.id ? 'bg-rose-500 text-white border-rose-300' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-rose-400'
+                    }">${im.icon} ${im.name}</button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Bind Skill Selection & Flowchart Node Listeners
+        editor.querySelectorAll('.pick-skill-btn').forEach(btn => {
+          btn.onclick = () => {
+            const skId = btn.getAttribute('data-pick-skill');
+            const sk = getSkillById(skId);
+            const curCost = calculateSlotCost(human.slots[GAME.draftSlot]);
+            if (GAME.mode === 'normal' && (usedFp - curCost + sk.fp > maxFp)) {
+              showToast(`Not enough Forge Points! Need ${sk.fp} FP.`, 'rose');
+              return;
+            }
+            human.slots[GAME.draftSlot].skillId = skId;
+            if (GAME.mode === 'normal') {
+              human.slots[GAME.draftSlot].triggerId = 'single';
+              human.slots[GAME.draftSlot].impactId = 'none';
+              human.slots[GAME.draftSlot].sizeMult = 1.0;
+              human.slots[GAME.draftSlot].powerMult = 1.0;
+              human.slots[GAME.draftSlot].speedMult = 1.0;
+            }
+            syncPreviewAttacker(human);
+            renderForgeModalUI();
+            renderBottomSkillBar();
+          };
+        });
+
+        editor.querySelectorAll('.wf-trig-btn').forEach(btn => {
+          btn.onclick = () => {
+            human.slots[GAME.draftSlot].triggerId = btn.getAttribute('data-trig');
+            syncPreviewAttacker(human);
+            renderForgeModalUI();
+          };
+        });
+
+        editor.querySelectorAll('.wf-imp-btn').forEach(btn => {
+          btn.onclick = () => {
+            human.slots[GAME.draftSlot].impactId = btn.getAttribute('data-imp');
+            syncPreviewAttacker(human);
+            renderForgeModalUI();
+          };
+        });
+
+        const rS = document.getElementById('rngSizeM');
+        const rP = document.getElementById('rngPowerM');
+        const rSp = document.getElementById('rngSpeedM');
+        if (rS) rS.oninput = () => { human.slots[GAME.draftSlot].sizeMult = parseFloat(rS.value); document.getElementById('lblSizeM').textContent = rS.value + 'x'; syncPreviewAttacker(human); };
+        if (rP) rP.oninput = () => { human.slots[GAME.draftSlot].powerMult = parseFloat(rP.value); document.getElementById('lblPowerM').textContent = rP.value + 'x'; syncPreviewAttacker(human); };
+        if (rSp) rSp.oninput = () => { human.slots[GAME.draftSlot].speedMult = parseFloat(rSp.value); document.getElementById('lblSpeedM').textContent = rSp.value + 'x'; syncPreviewAttacker(human); };
+      }
+
+      function syncPreviewAttacker(human) {
+        if (PREVIEW_WORLD.fighters[0]) {
+          PREVIEW_WORLD.fighters[0].slots = JSON.parse(JSON.stringify(human.slots));
+          PREVIEW_WORLD.fighters[0].cooldowns[GAME.draftSlot] = 0;
+        }
+      }
+
+      function renderStatsUpgradeGrid() {
+        const grid = document.getElementById('statsUpgradeGrid');
+        const human = getLocalFighter();
+        if (!grid || !human) return;
+        document.getElementById('forgeSpCounter').textContent = `${human.sp} SP Available`;
+
+        grid.innerHTML = STAT_DEFS.map(st => {
+          const lvl = human.stats[st.id] || 0;
+          const canUp = human.sp > 0 && lvl < st.max;
+          return `
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between text-xs font-extrabold text-white">
+                  <span>${st.icon} ${st.name}</span>
+                  <span class="text-emerald-300">LVL ${lvl} / ${st.max}</span>
+                </div>
+                <p class="text-[0.68rem] text-slate-400 mt-1">${st.desc}</p>
+                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden mt-2 border border-slate-800">
+                  <div class="h-full bg-emerald-400" style="width: ${(lvl / st.max) * 100}%"></div>
+                </div>
+              </div>
+              <button type="button" data-stat-id="${st.id}" class="btn-up-stat btn-arcade mt-3 w-full py-1.5 rounded-lg text-xs font-extrabold ${
+                canUp ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950' : 'bg-slate-900 text-slate-600 cursor-not-allowed'
+              }">
+                ${lvl >= st.max ? 'MAXED OUT' : '+ UPGRADE (1 SP)'}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('.btn-up-stat').forEach(btn => {
+          btn.onclick = () => {
+            const id = btn.getAttribute('data-stat-id');
+            if (human.sp > 0 && human.stats[id] < 10) {
+              human.sp--;
+              human.stats[id]++;
+              recalcFighterStats(human);
+              SFX.playTone(580, 0.1, 'triangle', 0.12, 840);
+              renderStatsUpgradeGrid();
+            }
+          };
+        });
+      }
+
+      function renderBottomSkillBar() {
+        const container = document.getElementById('skillSlotsContainer');
+        const human = getLocalFighter();
+        if (!container || !human) return;
+        container.innerHTML = '';
+
+        for (let i = 0; i < human.unlockedSlots; i++) {
+          const wf = human.slots[i];
+          const sk = getSkillById(wf.skillId);
+          const active = i === human.activeSlot;
+          const cd = human.cooldowns[i];
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `btn-arcade relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all ${
+            active
+              ? 'bg-sky-500/25 border-cyan-400 text-white shadow-lg scale-105'
+              : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:border-slate-600'
+          }`;
+          btn.innerHTML = `
+            <span class="text-[0.6rem] text-slate-400">[${i === 9 ? 0 : i + 1}]</span>
+            <span class="text-sm">${sk.icon}</span>
+            <span class="hidden sm:inline">${sk.name}</span>
+            ${cd > 0 ? `<span class="ml-1 text-[0.65rem] text-amber-300 font-mono">${cd.toFixed(1)}s</span>` : ''}
+          `;
+          btn.onclick = () => {
+            human.activeSlot = i;
+            renderBottomSkillBar();
+          };
+          container.appendChild(btn);
+        }
+      }
+
+      // =========================================================
+      // 15. SEQUENTIAL VICTORY PODIUM (3RD -> 2ND -> 1ST)
+      // =========================================================
+      function endMatchAndShowPodium() {
+        if (GAME.state === 'podium') return;
+        GAME.state = 'podium';
+        hideAllModals();
+
+        const sorted = [...WORLD.fighters].sort((a, b) => (b.kos - a.kos) || (b.damageDealt - a.damageDealt));
+        const first = sorted[0];
+        const second = sorted[1];
+        const third = sorted[2];
+
+        const modal = document.getElementById('podiumModal');
+        const stage = document.getElementById('podiumStageContainer');
+        const title = document.getElementById('podiumTitleText');
+        const sub = document.getElementById('podiumSubtitleText');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        stage.innerHTML = `
+          <div id="podiumSlot2" class="flex flex-col items-center justify-end h-full opacity-0"></div>
+          <div id="podiumSlot1" class="flex flex-col items-center justify-end h-full opacity-0"></div>
+          <div id="podiumSlot3" class="flex flex-col items-center justify-end h-full opacity-0"></div>
+        `;
+        renderMapPickerGrids();
+
+        const buildSlotHTML = (fighter, rank, heightClass, borderCol, medal) => {
+          if (!fighter) return '';
+          return `
+            <div class="relative flex flex-col items-center mb-1.5">
+              ${rank === 1 ? '<div id="podiumCrown" class="text-2xl sm:text-3xl mb-0.5 opacity-0">👑</div>' : ''}
+              <canvas data-podium-char="${fighter.charId}" width="48" height="56" class="w-12 h-14 sm:w-14 sm:h-16"></canvas>
+              <div class="text-[0.65rem] sm:text-xs font-extrabold text-white truncate max-w-[95px]">${escapeHtml(fighter.name)}</div>
+              <div class="text-[0.6rem] text-slate-300 font-bold">${fighter.kos} KOs • ${Math.round(fighter.damageDealt)} DMG</div>
+            </div>
+            <div class="w-full ${heightClass} rounded-t-xl border-t-4 ${borderCol} bg-gradient-to-b from-slate-800 to-slate-950 flex flex-col items-center justify-center shadow-xl">
+              <span class="font-pixel text-sm sm:text-base">${medal}</span>
+              <span class="text-[0.6rem] font-bold text-slate-400 mt-1">${rank === 1 ? '1ST PLACE' : rank === 2 ? '2ND PLACE' : '3RD PLACE'}</span>
+            </div>
+          `;
+        };
+
+        const drawPodiumSprites = (container) => {
+          container.querySelectorAll('canvas[data-podium-char]').forEach(c => {
+            const ctx = c.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            const sp = (SPRITE_CACHE[c.getAttribute('data-podium-char')] || SPRITE_CACHE.knight)[0];
+            ctx.drawImage(sp, 0, 0, 48, 56);
+          });
+        };
+
+        // Step 1: 3rd Place Rises (t = 350ms)
+        setTimeout(() => {
+          const s3 = document.getElementById('podiumSlot3');
+          if (s3 && third) {
+            s3.innerHTML = buildSlotHTML(third, 3, 'h-20 sm:h-24', 'border-amber-700', '🥉');
+            drawPodiumSprites(s3);
+            s3.classList.remove('opacity-0');
+            s3.classList.add('animate-podium-rise');
+            SFX.playTone(330, 0.16, 'square', 0.11);
+          }
+          if (sub) sub.textContent = third ? `3rd Place: ${third.name}!` : 'Revealing 2nd Place...';
+        }, 350);
+
+        // Step 2: 2nd Place Rises (t = 1150ms)
+        setTimeout(() => {
+          const s2 = document.getElementById('podiumSlot2');
+          if (s2 && second) {
+            s2.innerHTML = buildSlotHTML(second, 2, 'h-28 sm:h-32', 'border-slate-300', '🥈');
+            drawPodiumSprites(s2);
+            s2.classList.remove('opacity-0');
+            s2.classList.add('animate-podium-rise');
+            SFX.playTone(440, 0.18, 'square', 0.12);
+          }
+          if (sub) sub.textContent = second ? `2nd Place: ${second.name}!` : 'And the Champion is...';
+        }, 1150);
+
+        // Step 3: 1st Place Champion Rises + Golden Crown Drops + 16-Bit Victory Fanfare (t = 2000ms)
+        setTimeout(() => {
+          const s1 = document.getElementById('podiumSlot1');
+          if (s1 && first) {
+            s1.innerHTML = buildSlotHTML(first, 1, 'h-36 sm:h-44', 'border-amber-400', '🥇');
+            drawPodiumSprites(s1);
+            s1.classList.remove('opacity-0');
+            s1.classList.add('animate-podium-rise');
+            SFX.playVictoryFanfare();
+            setTimeout(() => {
+              const crown = document.getElementById('podiumCrown');
+              if (crown) {
+                crown.classList.remove('opacity-0');
+                crown.classList.add('animate-crown-drop');
+              }
+            }, 420);
+          }
+          if (title && first) title.textContent = `👑 ${first.name.toUpperCase()} WINS!`;
+          if (sub) sub.textContent = 'Pick the next destructible map below or return to the Main Menu!';
+        }, 2000);
+      }
+
+      function openStatsModal() {
+        const modal = document.getElementById('statsModal');
+        const tbody = document.getElementById('rankingsTableBody');
+        if (!modal || !tbody) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const sorted = [...WORLD.fighters].sort((a, b) => (b.kos - a.kos) || (b.damageDealt - a.damageDealt));
+        tbody.innerHTML = sorted.map((f, i) => `
+          <tr class="${f.isHuman ? 'bg-cyan-950/40 text-cyan-200 font-bold' : 'text-slate-200'}">
+            <td class="py-2 px-3 font-pixel text-[0.65rem]">#${i + 1}</td>
+            <td class="py-2 px-3">${escapeHtml(f.name)}</td>
+            <td class="py-2 px-3">${f.level}</td>
+            <td class="py-2 px-3 text-emerald-300 font-bold">${f.kos}</td>
+            <td class="py-2 px-3 text-rose-300">${f.deaths}</td>
+            <td class="py-2 px-3 text-amber-300">${Math.round(f.damageDealt)}</td>
+          </tr>
+        `).join('');
+      }
+
+      function hideAllModals() {
+        ['startMenuModal', 'onlineLobbyModal', 'forgeModal', 'podiumModal', 'statsModal'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+          }
+        });
+      }
+
+      function downloadStandaloneHtml() {
+        try {
+          const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+          const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'aether-forge-2.5d.html';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          showToast('📥 Downloaded aether-forge-2.5d.html!', 'emerald');
+        } catch (err) {
+          showToast('Download blocked by browser preview frame.', 'rose');
+        }
+      }
+
+      function copyTextSafe(text, successMsg) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          showToast(successMsg, 'emerald');
+        } catch (e) {
+          showToast('Copied: ' + text, 'sky');
+        }
+      }
+
+      // =========================================================
+      // 16. INPUT, MULTI-TOUCH & EVENT BINDINGS
+      // =========================================================
+      function bindUIEvents() {
+        // Mode buttons
+        document.getElementById('btnModeNormal').onclick = () => setGameMode('normal');
+        document.getElementById('btnModeAnything').onclick = () => setGameMode('anything');
+
+        // UI & Map Scalers
+        document.getElementById('btnUiScaleDown').onclick = () => applyUiScale(GAME.uiScale - 0.05);
+        document.getElementById('btnUiScaleUp').onclick = () => applyUiScale(GAME.uiScale + 0.05);
+        document.getElementById('btnStartUiDown').onclick = () => applyUiScale(GAME.uiScale - 0.05);
+        document.getElementById('btnStartUiUp').onclick = () => applyUiScale(GAME.uiScale + 0.05);
+
+        document.getElementById('btnMapScaleDown').onclick = () => applyMapScale(GAME.mapScale - 0.1);
+        document.getElementById('btnMapScaleUp').onclick = () => applyMapScale(GAME.mapScale + 0.1);
+        document.getElementById('btnStartMapDown').onclick = () => applyMapScale(GAME.mapScale - 0.1);
+        document.getElementById('btnStartMapUp').onclick = () => applyMapScale(GAME.mapScale + 0.1);
+        document.getElementById('btnPodiumMapDown').onclick = () => applyMapScale(GAME.mapScale - 0.1);
+        document.getElementById('btnPodiumMapUp').onclick = () => applyMapScale(GAME.mapScale + 0.1);
+
+        // Top HUD Actions
+        document.getElementById('btnToggleCam').onclick = () => {
+          GAME.followCam = !GAME.followCam;
+          showToast(GAME.followCam ? '🔭 Follow Camera: ON' : '🗺️ Full Arena Camera: ON', 'cyan');
+        };
+        document.getElementById('btnToggleTouch').onclick = () => {
+          GAME.touch.enabled = !GAME.touch.enabled;
+          document.getElementById('mobileControlsLayer').classList.toggle('hidden', !GAME.touch.enabled);
+        };
+        document.getElementById('btnToggleSound').onclick = (e) => {
+          SFX.muted = !SFX.muted;
+          e.currentTarget.textContent = SFX.muted ? '🔇' : '🔊';
+        };
+        document.getElementById('btnOpenOnlineTop').onclick = () => {
+          const m = document.getElementById('onlineLobbyModal');
+          m.classList.remove('hidden'); m.classList.add('flex');
+          renderPublicServerBrowser();
+        };
+        document.getElementById('btnOpenOnlineFromMenu').onclick = () => {
+          const m = document.getElementById('onlineLobbyModal');
+          m.classList.remove('hidden'); m.classList.add('flex');
+          renderPublicServerBrowser();
+        };
+        document.getElementById('btnOpenForgeTop').onclick = () => openForgeModal('skills');
+        document.getElementById('btnOpenStatsTop').onclick = () => openStatsModal();
+        document.getElementById('btnOpenMenuTop').onclick = () => {
+          const m = document.getElementById('startMenuModal');
+          m.classList.remove('hidden'); m.classList.add('flex');
+        };
+
+        // Start Menu & Download
+        document.getElementById('btnStartMatch').onclick = () => startNewMatch(false);
+        document.getElementById('btnDownloadHtml').onclick = () => downloadStandaloneHtml();
+
+        // All Modal Close ('✖') Buttons
+        document.getElementById('btnCloseStartMenu').onclick = () => {
+          if (WORLD.fighters.length === 0) startNewMatch(false);
+          else hideAllModals();
+        };
+        document.getElementById('btnCloseOnlineLobby').onclick = () => {
+          document.getElementById('onlineLobbyModal').classList.add('hidden');
+          document.getElementById('onlineLobbyModal').classList.remove('flex');
+        };
+        document.getElementById('btnCloseForge').onclick = () => {
+          document.getElementById('forgeModal').classList.add('hidden');
+          document.getElementById('forgeModal').classList.remove('flex');
+        };
+        document.getElementById('btnClosePodium').onclick = () => startNewMatch(false);
+        document.getElementById('btnCloseStats').onclick = () => {
+          document.getElementById('statsModal').classList.add('hidden');
+          document.getElementById('statsModal').classList.remove('flex');
+        };
+
+        // Online Room Controls
+        document.getElementById('btnCreatePublicRoom').onclick = () => createOnlineRoom(true);
+        document.getElementById('btnCreatePrivateRoom').onclick = () => createOnlineRoom(false);
+        document.getElementById('btnJoinByCode').onclick = () => joinOnlineRoom(document.getElementById('inputRoomCodeJoin').value);
+        document.getElementById('btnRefreshServers').onclick = () => renderPublicServerBrowser();
+        document.getElementById('btnCopyRoomCode').onclick = () => copyTextSafe(NET.roomCode, `📋 Copied Room Code: ${NET.roomCode}`);
+        document.getElementById('btnCopyInviteLink').onclick = () => {
+          const base = window.location.href.split('?')[0].split('#')[0];
+          copyTextSafe(`${base}?room=${NET.roomCode}`, `🔗 Copied Invite Link for ${NET.roomCode}!`);
+        };
+        document.getElementById('btnLaunchOnlineMatch').onclick = () => startNewMatch(false);
+        document.getElementById('btnLeaveOnlineRoom').onclick = () => leaveOnlineRoom();
+
+        // Forge Sub-Tabs, Slot Unlock & Respec
+        document.getElementById('tabBtnSkills').onclick = () => switchForgeTab('skills');
+        document.getElementById('tabBtnStats').onclick = () => switchForgeTab('stats');
+        document.getElementById('btnUnlockSlot').onclick = () => {
+          const human = getLocalFighter();
+          if (!human) return;
+          if (human.unlockedSlots >= 10) {
+            showToast('All 10 slots are already unlocked!', 'amber');
+            return;
+          }
+          if (human.kos < human.unlockedSlots - 2) {
+            showToast(`Need ${human.unlockedSlots - 2} total KOs to unlock Slot #${human.unlockedSlots + 1}!`, 'rose');
+            return;
+          }
+          human.unlockedSlots++;
+          SFX.playTone(660, 0.14, 'square', 0.12, 990);
+          renderForgeModalUI();
+          renderBottomSkillBar();
+          showToast(`🔓 Unlocked Ability Slot #${human.unlockedSlots}!`, 'emerald');
+        };
+        document.getElementById('btnResetPreviewDummy').onclick = () => {
+          if (PREVIEW_WORLD.fighters[1]) PREVIEW_WORLD.fighters[1].hp = PREVIEW_WORLD.fighters[1].maxHp;
+        };
+        document.getElementById('btnRespecStats').onclick = () => {
+          const human = getLocalFighter();
+          if (!human) return;
+          let refunded = 0;
+          STAT_DEFS.forEach(s => { refunded += human.stats[s.id]; human.stats[s.id] = 0; });
+          human.sp += refunded;
+          recalcFighterStats(human);
+          renderStatsUpgradeGrid();
+          showToast(`♻️ Refunded ${refunded} Stat Points!`, 'sky');
+        };
+
+        // Podium Next Match & Menu
+        document.getElementById('btnPlayNextMatch').onclick = () => startNewMatch(false);
+        document.getElementById('btnPodiumToMenu').onclick = () => {
+          hideAllModals();
+          const m = document.getElementById('startMenuModal');
+          m.classList.remove('hidden'); m.classList.add('flex');
+        };
+
+        // Keyboard & Mouse Aiming
+        window.addEventListener('keydown', (e) => {
+          GAME.keys[e.code] = true;
+          if (e.code === 'KeyB') {
+            const m = document.getElementById('forgeModal');
+            if (m.classList.contains('hidden')) openForgeModal('skills');
+            else hideAllModals();
+          } else if (e.code === 'KeyV') {
+            const m = document.getElementById('forgeModal');
+            if (m.classList.contains('hidden')) openForgeModal('stats');
+            else hideAllModals();
+          } else if (e.code === 'Tab') {
+            e.preventDefault();
+            const m = document.getElementById('statsModal');
+            if (m.classList.contains('hidden')) openStatsModal();
+            else hideAllModals();
+          } else if (e.code === 'Escape') {
+            hideAllModals();
+          } else if (e.code.startsWith('Digit')) {
+            const num = parseInt(e.code.replace('Digit', ''), 10);
+            const idx = num === 0 ? 9 : num - 1;
+            const human = getLocalFighter();
+            if (human && idx >= 0 && idx < human.unlockedSlots) {
+              human.activeSlot = idx;
+              renderBottomSkillBar();
+            }
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          GAME.keys[e.code] = false;
+        });
+
+        const canvas = document.getElementById('gameCanvas');
+        canvas.addEventListener('mousemove', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          GAME.mouse.x = e.clientX - rect.left;
+          GAME.mouse.y = e.clientY - rect.top;
+          const human = getLocalFighter();
+          if (human) {
+            const wp = screenToWorld(GAME.mouse.x, GAME.mouse.y, GAME.cam, canvas.width, canvas.height);
+            human.aimAngle = Math.atan2(wp.y - human.wy, wp.x - human.wx);
+            human.facing = Math.cos(human.aimAngle) >= 0 ? 1 : -1;
+          }
+        });
+        canvas.addEventListener('mousedown', (e) => {
+          if (e.button === 0) {
+            SFX.ensure();
+            GAME.mouse.down = true;
+          }
+        });
+        window.addEventListener('mouseup', () => {
+          GAME.mouse.down = false;
+        });
+
+        // Multi-Touch Mobile Controls (Simultaneous Joystick + Jump + Cast!)
+        const joyBase = document.getElementById('touchJoystickBase');
+        const joyKnob = document.getElementById('touchJoystickKnob');
+        joyBase.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const t = e.changedTouches[0];
+          GAME.touch.joyId = t.identifier;
+          const rect = joyBase.getBoundingClientRect();
+          GAME.touch.joyOriginX = rect.left + rect.width * 0.5;
+          GAME.touch.joyOriginY = rect.top + rect.height * 0.5;
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.identifier === GAME.touch.joyId) {
+              const dx = t.clientX - GAME.touch.joyOriginX;
+              const dy = t.clientY - GAME.touch.joyOriginY;
+              const maxR = 42;
+              const dist = Math.min(maxR, Math.hypot(dx, dy));
+              const ang = Math.atan2(dy, dx);
+              GAME.touch.moveX = (Math.cos(ang) * dist) / maxR;
+              GAME.touch.moveY = (Math.sin(ang) * dist) / maxR;
+              joyKnob.style.transform = `translate(${Math.cos(ang) * dist}px, ${Math.sin(ang) * dist}px)`;
+              const human = getLocalFighter();
+              if (human && dist > 6) {
+                human.aimAngle = ang;
+                human.facing = Math.cos(ang) >= 0 ? 1 : -1;
+              }
+            }
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchend', (e) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === GAME.touch.joyId) {
+              GAME.touch.joyId = null;
+              GAME.touch.moveX = 0;
+              GAME.touch.moveY = 0;
+              joyKnob.style.transform = 'translate(0px, 0px)';
+            }
+          }
+        });
+
+        const btnJump = document.getElementById('btnTouchJump');
+        btnJump.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          SFX.ensure();
+          const human = getLocalFighter();
+          if (human && human.wz <= 1) {
+            human.vz = human.jumpPower;
+            human.squashX = 0.78;
+            human.squashY = 1.26;
+          }
+        }, { passive: false });
+
+        const btnCast = document.getElementById('btnTouchCast');
+        btnCast.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          SFX.ensure();
+          GAME.touch.casting = true;
+        }, { passive: false });
+        btnCast.addEventListener('touchend', () => { GAME.touch.casting = false; });
+
+        document.getElementById('btnTouchPrev').onclick = () => {
+          const human = getLocalFighter();
+          if (human) {
+            human.activeSlot = (human.activeSlot - 1 + human.unlockedSlots) % human.unlockedSlots;
+            renderBottomSkillBar();
+          }
+        };
+        document.getElementById('btnTouchNext').onclick = () => {
+          const human = getLocalFighter();
+          if (human) {
+            human.activeSlot = (human.activeSlot + 1) % human.unlockedSlots;
+            renderBottomSkillBar();
+          }
+        };
+        document.getElementById('btnTouchForge').onclick = () => openForgeModal('skills');
+
+        // Auto-show touch controls on touch-capable screens
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+          GAME.touch.enabled = true;
+          document.getElementById('mobileControlsLayer').classList.remove('hidden');
+        }
+      }
+
+      // =========================================================
+      // 17. MAIN 60FPS ANIMATION LOOP & HUD UPDATER
+      // =========================================================
+      let lastFrameTime = performance.now();
+      let hudTick = 0;
+      let netSyncTick = 0;
+
+      function updateLiveHUD(dt) {
+        const human = getLocalFighter();
+        if (human) {
+          document.getElementById('hudPlayerHPBar').style.width = `${Math.max(0, (human.hp / human.maxHp) * 100)}%`;
+          document.getElementById('hudPlayerHPText').textContent = `${Math.ceil(human.hp)}/${human.maxHp}`;
+          document.getElementById('hudPlayerLvl').textContent = `LVL ${human.level}`;
+          document.getElementById('hudPlayerKOs').textContent = `${human.kos} KOs`;
+          const maxFp = getTotalForgePoints();
+          const freeFp = Math.max(0, maxFp - getUsedForgePoints(human));
+          document.getElementById('hudPlayerFP').textContent = GAME.mode === 'anything' ? '∞ FP' : `${freeFp}/${maxFp} FP`;
+          document.getElementById('hudPlayerSP').textContent = `${human.sp} SP`;
+        }
+
+        // Countdown Timer
+        if (GAME.state === 'playing') {
+          const prevSec = Math.ceil(GAME.timeLeft);
+          GAME.timeLeft = Math.max(0, GAME.timeLeft - dt);
+          const curSec = Math.ceil(GAME.timeLeft);
+          const mins = String(Math.floor(curSec / 60)).padStart(2, '0');
+          const secs = String(curSec % 60).padStart(2, '0');
+          const timerEl = document.getElementById('hudTimer');
+          timerEl.textContent = `${mins}:${secs}`;
+          if (curSec <= 10 && curSec > 0 && curSec !== prevSec) {
+            timerEl.classList.add('text-rose-400');
+            SFX.playTone(760, 0.06, 'square', 0.08);
+          } else if (curSec > 10) {
+            timerEl.classList.remove('text-rose-400');
+          }
+          if (GAME.timeLeft <= 0) {
+            endMatchAndShowPodium();
+          }
+        }
+
+        hudTick += dt;
+        if (hudTick >= 0.25) {
+          hudTick = 0;
+          renderBottomSkillBar();
+          const lb = document.getElementById('miniLeaderboardList');
+          if (lb) {
+            const sorted = [...WORLD.fighters].sort((a, b) => (b.kos - a.kos) || (b.damageDealt - a.damageDealt)).slice(0, 5);
+            lb.innerHTML = sorted.map((f, idx) => `
+              <div class="flex items-center justify-between ${f.isHuman ? 'text-cyan-300 font-bold' : 'text-slate-300'}">
+                <span class="truncate max-w-[105px]">${idx + 1}. ${escapeHtml(f.name)}</span>
+                <span class="font-mono text-[0.65rem] text-amber-300">${f.kos} / ${Math.round(f.damageDealt)}</span>
+              </div>
+            `).join('');
+          }
+        }
+
+        // Online Position Sync
+        if (NET.active && GAME.state === 'playing' && human) {
+          netSyncTick += dt;
+          if (netSyncTick >= 0.08) {
+            netSyncTick = 0;
+            broadcastRelay({
+              type: 'state',
+              fighter: {
+                name: human.name,
+                charId: human.charId,
+                wx: human.wx,
+                wy: human.wy,
+                wz: human.wz,
+                facing: human.facing,
+                aimAngle: human.aimAngle,
+                hp: human.hp,
+                maxHp: human.maxHp,
+                kos: human.kos
+              }
+            });
+          }
+        }
+      }
+
+      function resizeAllCanvases() {
+        const main = document.getElementById('gameCanvas');
+        if (main) {
+          main.width = window.innerWidth;
+          main.height = window.innerHeight;
+        }
+        const prev = document.getElementById('previewCanvas');
+        if (prev && prev.clientWidth > 0) {
+          prev.width = prev.clientWidth;
+          prev.height = prev.clientHeight;
+        }
+      }
+
+      function gameLoop(now) {
+        const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+        lastFrameTime = now;
+
+        const mainCanvas = document.getElementById('gameCanvas');
+        if (mainCanvas && (mainCanvas.width !== window.innerWidth || mainCanvas.height !== window.innerHeight)) {
+          resizeAllCanvases();
+        }
+
+        // Step & Render Main Arena (runs live background demo on menu too!)
+        stepWorldSimulation(WORLD, dt);
+        updateLiveHUD(dt);
+
+        const human = getLocalFighter();
+        const { halfW, halfH } = getArenaBounds(GAME.mapScale);
+        if (GAME.followCam && human && GAME.state === 'playing') {
+          GAME.cam.x += (human.wx - GAME.cam.x) * Math.min(1, dt * 8);
+          GAME.cam.y += (human.wy - GAME.cam.y) * Math.min(1, dt * 8);
+          GAME.cam.zoom = Math.max(0.95, Math.min(1.45, mainCanvas.width / 720));
+        } else {
+          GAME.cam.x += (0 - GAME.cam.x) * Math.min(1, dt * 6);
+          GAME.cam.y += (0 - GAME.cam.y) * Math.min(1, dt * 6);
+          const fitX = (mainCanvas.width * 0.88) / (halfW * 2);
+          const fitY = (mainCanvas.height * 0.78) / (halfH * 2 * 0.66);
+          GAME.cam.zoom = Math.max(0.45, Math.min(1.25, Math.min(fitX, fitY)));
+        }
+
+        renderWorld25D(mainCanvas, WORLD, GAME.cam, human ? human.id : null);
+
+        // Step & Render Armory Live 2.5D Preview Sandbox when open
+        const forgeModal = document.getElementById('forgeModal');
+        if (forgeModal && !forgeModal.classList.contains('hidden')) {
+          const prevCanvas = document.getElementById('previewCanvas');
+          if (prevCanvas && prevCanvas.clientWidth > 0 && prevCanvas.width !== prevCanvas.clientWidth) {
+            prevCanvas.width = prevCanvas.clientWidth;
+            prevCanvas.height = prevCanvas.clientHeight;
+          }
+          stepWorldSimulation(PREVIEW_WORLD, dt);
+          renderWorld25D(prevCanvas, PREVIEW_WORLD, { x: 0, y: 0, zoom: 0.72 }, null);
+        }
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      // =========================================================
+      // 18. BOOTSTRAP ON LOAD
+      // =========================================================
+      function bootstrap() {
+        initSpriteCache();
+        resizeAllCanvases();
+        window.addEventListener('resize', resizeAllCanvases);
+
+        setGameMode('normal');
+        applyUiScale(1.0);
+        applyMapScale(1.0);
+        renderCharacterRosterGrid();
+        renderMapPickerGrids();
+        initOnlineRelay();
+        bindUIEvents();
+
+        // Populate a live background battle behind the Start Menu
+        loadArenaMap(WORLD, GAME.selectedMapId, 1.0);
+        for (let i = 0; i < 4; i++) {
+          const ch = CHARACTER_ROSTER[i];
+          WORLD.fighters.push(createFighter({
+            id: 'demo_' + i,
+            name: ch.shortName,
+            charId: ch.id,
+            isHuman: false,
+            x: (i - 1.5) * 140,
+            y: (i % 2 === 0 ? -70 : 70)
+          }));
+        }
+
+        // Auto-join if ?room=CODE invite parameter is present
+        const params = new URLSearchParams(window.location.search);
+        const inviteCode = params.get('room');
+        if (inviteCode) {
+          const m = document.getElementById('onlineLobbyModal');
+          m.classList.remove('hidden'); m.classList.add('flex');
+          joinOnlineRoom(inviteCode);
+        }
+
+        lastFrameTime = performance.now();
+        requestAnimationFrame(gameLoop);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrap);
+      } else {
+        bootstrap();
+      }
+    })();
+  </script>
+</body>
+</html>
