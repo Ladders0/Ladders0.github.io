@@ -548,6 +548,286 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
   .hud-bottom{bottom:4px}
 }
 
+/* ============================================================================
+   AETHER FORGE 2.6 — AFX upgrade skin
+   kinetic motion, dual-stick touch, style meter, fighter customizer
+   ========================================================================== */
+:root{
+  --spring:cubic-bezier(.22,1.42,.36,1);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --af-ghost:#f8fafc;
+}
+/* ---------- modal springs instead of hard display toggles ---------- */
+.modal{
+  display:grid !important;place-items:center;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .16s var(--ease),visibility .16s linear;
+}
+.modal.open{opacity:1;visibility:visible;pointer-events:auto}
+.modal .sheet{
+  transform:translateY(22px) scale(.965);opacity:0;
+  transition:transform .38s var(--spring),opacity .22s var(--ease);
+  will-change:transform
+}
+.modal.open .sheet{transform:none;opacity:1}
+.modal.open .block,.modal.open .stat-card,.modal.open .skill{
+  animation:afCard .46s var(--spring) both
+}
+.modal.open .block:nth-child(1){animation-delay:.02s}
+.modal.open .block:nth-child(2){animation-delay:.05s}
+.modal.open .block:nth-child(3){animation-delay:.08s}
+.modal.open .block:nth-child(4){animation-delay:.11s}
+.modal.open .block:nth-child(5){animation-delay:.14s}
+.modal.open .block:nth-child(6){animation-delay:.17s}
+.modal.open .block:nth-child(n+7){animation-delay:.2s}
+@keyframes afCard{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.modal.open .char-card{animation:afPop .34s var(--spring) both}
+.modal.open .char-card:nth-child(2n){animation-delay:.03s}
+.modal.open .char-card:nth-child(3n){animation-delay:.06s}
+@keyframes afPop{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
+
+/* ---------- tactile controls ---------- */
+.btn,.chip,.icon-btn,.slot,.skill,.char-card,.map-card,.slotbtn{
+  transition:transform .13s var(--spring),box-shadow .13s var(--ease),
+    filter .16s var(--ease),border-color .16s var(--ease),background .16s var(--ease)
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(3px) scale(.985)}
+.chip:hover{transform:translateY(-1px)}
+.chip:active{transform:translateY(1px) scale(.97)}
+.skill:hover,.char-card:hover,.map-card:hover{transform:translateY(-2px)}
+.skill:active,.char-card:active,.map-card:active{transform:translateY(1px) scale(.99)}
+.slot:active{transform:translateY(2px)}
+.icon-btn:hover{transform:translateY(-1px)}
+.icon-btn:active{transform:translateY(2px) scale(.96)}
+.btn.primary{position:relative;overflow:hidden}
+.btn.primary::after{
+  content:"";position:absolute;inset:0;transform:translateX(-120%);
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  transition:transform .55s var(--ease)
+}
+.btn.primary:hover::after{transform:translateX(120%)}
+
+/* ---------- animated vitals ---------- */
+.bar>i{transition:width .26s var(--spring),background .2s linear;position:relative}
+.bar>i::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.38),transparent 60%);
+  opacity:.65
+}
+.bar.low{animation:afBarWarn .8s steps(2) infinite}
+@keyframes afBarWarn{50%{filter:brightness(1.45)}}
+.timer.urgent span{animation:afTick .5s var(--spring) infinite alternate}
+@keyframes afTick{from{transform:scale(1)}to{transform:scale(1.12);color:#fff}}
+
+/* ---------- pixel icon plumes ---------- */
+.af-ico{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.16em;margin-right:.35em;
+  image-rendering:pixelated}
+.af-ico svg{width:100%;height:100%;display:block}
+
+/* ---------- stamina pips ---------- */
+.af-stam{display:flex;gap:3px;align-items:center;padding:2px 6px;border:2px solid #22344f;
+  background:#070e1a}
+.af-stam i{width:9px;height:12px;background:#0f2233;border:1px solid #1b3a52;display:block;
+  transition:background .18s var(--ease),transform .2s var(--spring)}
+.af-stam i.f{background:#22d3ee;border-color:#a5f3fc;box-shadow:0 0 6px rgba(34,211,238,.8)}
+.af-stam i.re{animation:afPip .4s var(--spring)}
+@keyframes afPip{from{transform:scale(.4)}to{transform:none}}
+.af-stam b{font-family:var(--mono);font-size:.6rem;color:#7a90b1;margin-right:2px;font-weight:700}
+
+/* ---------- dual HUD vitals for local 2P ---------- */
+#afP2Hud{
+  position:fixed;left:10px;bottom:86px;z-index:24;display:none;gap:6px;align-items:center;
+  padding:4px 7px;border:3px solid #22344f;background:#070e1a;
+  box-shadow:inset 0 0 0 2px #050b14
+}
+#afP2Hud.on{display:flex;animation:afCard .4s var(--spring) both}
+#afP2Hud .nm{font-family:var(--mono);font-size:.62rem;color:#fca5a5;letter-spacing:.08em}
+#afP2Hud .bar{width:96px;height:11px;background:#12070b;border:2px solid #050b14}
+#afP2Hud .bar>i{background:repeating-linear-gradient(90deg,#fb7185 0 7px,#9f1239 7px 9px)}
+#afP2Hud .fp{font-family:var(--mono);font-size:.58rem;color:#94a3b8}
+
+/* ---------- style / move-chain meter ---------- */
+#afStyle{
+  position:fixed;right:12px;top:calc(44% + 62px);z-index:23;pointer-events:none;
+  text-align:right;opacity:0;transform:translateX(14px);
+  transition:opacity .2s var(--ease),transform .28s var(--spring)
+}
+#afStyle.on{opacity:1;transform:none}
+#afStyle .rank{
+  font-family:var(--mono);font-weight:800;font-size:2rem;line-height:.9;letter-spacing:.02em;
+  color:#fde68a;text-shadow:3px 3px 0 #7c2d12;display:block
+}
+#afStyle .rank.sss{color:#f0abfc;text-shadow:3px 3px 0 #6b21a8}
+#afStyle .rank.ss{color:#c4b5fd;text-shadow:3px 3px 0 #4c1d95}
+#afStyle .rank.s{color:#a5f3fc;text-shadow:3px 3px 0 #0e7490}
+#afStyle .rank.a{color:#a7f3d0;text-shadow:3px 3px 0 #065f46}
+#afStyle .meter{width:132px;height:8px;margin-top:4px;margin-left:auto;background:#0a1220;
+  border:2px solid #22344f}
+#afStyle .meter i{display:block;height:100%;width:0%;
+  background:repeating-linear-gradient(90deg,#fde68a 0 6px,#f59e0b 6px 8px);
+  transition:width .22s var(--spring)}
+#afStyle .lbl{font-family:var(--mono);font-size:.56rem;letter-spacing:.18em;color:#a16207;
+  margin-top:3px}
+#afStyle .callouts{font-family:var(--mono);font-size:.62rem;color:#fde68a;margin-top:2px;
+  min-height:.9em;letter-spacing:.06em}
+#afStyle .callouts span{display:inline-block;animation:afCall .5s var(--spring) both;margin-left:5px}
+@keyframes afCall{from{opacity:0;transform:translateY(8px) scale(.8)}to{opacity:1;transform:none}}
+
+/* ---------- touch: dual sticks + action cluster ---------- */
+#touchLayer{position:fixed;inset:0;z-index:26;pointer-events:none}
+#touchLayer .stick{
+  position:fixed;left:18px;bottom:84px;width:112px;height:112px;
+  background:radial-gradient(circle at 50% 50%,rgba(8,20,32,.62),rgba(6,14,24,.34));
+  border:3px solid rgba(34,211,238,.55);box-shadow:0 4px 0 #04283a,inset 0 0 18px rgba(34,211,238,.12);
+  touch-action:none;transition:transform .18s var(--spring),opacity .2s;
+  will-change:transform
+}
+#touchLayer .stick.idle{opacity:.66}
+#touchLayer .stick .knob{width:44px;height:44px;background:#22d3ee;border:3px solid #a5f3fc;
+  box-shadow:0 0 14px rgba(34,211,238,.65);will-change:transform}
+#afAim{
+  position:fixed;right:16px;bottom:78px;width:126px;height:126px;border-radius:50%;
+  border:3px dashed rgba(251,113,133,.62);pointer-events:auto;touch-action:none;
+  background:radial-gradient(circle,rgba(24,8,14,.55),rgba(8,14,24,.3) 70%);
+  display:grid;place-items:center;box-shadow:0 4px 0 #2a0711
+}
+#afAim .ring{position:absolute;inset:9px;border-radius:50%;
+  border:2px solid rgba(251,113,133,.32);pointer-events:none}
+#afAim .knob{width:46px;height:46px;border-radius:50%;background:#fb7185;
+  border:3px solid #fecdd3;box-shadow:0 0 16px rgba(251,113,133,.7);pointer-events:none;
+  will-change:transform}
+#afAim .hint{position:absolute;bottom:-15px;width:100%;text-align:center;
+  font-family:var(--mono);font-size:.5rem;letter-spacing:.14em;color:#9f1239}
+#afAim.firing{border-color:#fecdd3;background:radial-gradient(circle,rgba(60,8,16,.7),rgba(20,8,14,.4))}
+#afAim.firing .knob{background:#fff1f2;transform:scale(.92)}
+#afTouchBtns{position:fixed;right:18px;bottom:216px;z-index:27;display:flex;flex-direction:column;
+  gap:8px;align-items:flex-end;pointer-events:none}
+#afTouchBtns button{
+  pointer-events:auto;min-width:62px;height:46px;padding:0 9px;border-radius:0;
+  font-family:var(--mono);font-size:.58rem;font-weight:800;letter-spacing:.06em;
+  color:#04121a;border:3px solid #a5f3fc;background:#22d3ee;
+  box-shadow:0 4px 0 #054152;touch-action:none;display:flex;align-items:center;gap:5px;
+  justify-content:center
+}
+#afTouchBtns button:active{transform:translateY(3px);box-shadow:none}
+#afTouchBtns button.amber{border-color:#fde68a;background:#f59e0b;color:#1a1204;box-shadow:0 4px 0 #78350f}
+#afTouchBtns button.rose{border-color:#fecdd3;background:#e11d48;color:#fff;box-shadow:0 4px 0 #7f1d1d}
+#afTouchBtns button.violet{border-color:#ddd6fe;background:#7c3aed;color:#f5f3ff;box-shadow:0 4px 0 #4c1d95}
+#afTouchBtns button small{font-size:.48rem;opacity:.75;letter-spacing:0}
+#touchLayer .pad{bottom:74px}
+#touchLayer .pad .jump,#touchLayer .pad .cast{display:none}
+
+/* ---------- fighter customizer ---------- */
+.af-look{display:grid;grid-template-columns:132px minmax(0,1fr);gap:10px;align-items:start}
+@media(max-width:720px){.af-look{grid-template-columns:1fr}}
+.af-look-preview{background:#050b14;border:3px solid #22344f;padding:6px;display:grid;
+  place-items:center;box-shadow:inset 0 0 0 2px #04080f}
+.af-look-preview canvas{width:120px;height:156px;image-rendering:pixelated}
+.af-swatches{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.af-swatches button{
+  width:22px;height:22px;border:3px solid #22344f;background:var(--c);cursor:pointer;padding:0;
+  transition:transform .14s var(--spring),border-color .14s
+}
+.af-swatches button:hover{transform:translateY(-2px);border-color:#7dd3fc}
+.af-swatches button.on{border-color:#fff;box-shadow:0 0 0 2px #22d3ee}
+.af-color{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.af-color label{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;color:#a8bcd8;
+  flex:0 0 82px}
+.af-color input[type=color]{
+  width:34px;height:26px;padding:0;border:3px solid #22344f;background:#050b14;cursor:pointer
+}
+.af-color .hex{font-family:var(--mono);font-size:.58rem;color:#7a90b1}
+.af-aura{display:flex;flex-wrap:wrap;gap:5px}
+.af-aura button{padding:4px 7px;border:3px solid #22344f;background:#081220;color:#a8bcd8;
+  font-family:var(--mono);font-size:.6rem;cursor:pointer;transition:all .14s var(--ease)}
+.af-aura button.on{border-color:#a5f3fc;background:#0a2432;color:#a5f3fc}
+
+/* ---------- normal-mode overclock panel ---------- */
+.af-overclock{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+@media(max-width:720px){.af-overclock{grid-template-columns:1fr}}
+.af-slider{background:#081220;border:3px solid #1c2a42;padding:7px}
+.af-slider .hd{display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;color:#a8bcd8;margin-bottom:4px}
+.af-slider .hd b{font-size:.76rem;color:#fde68a}
+.af-slider .cost{font-family:var(--mono);font-size:.55rem;color:#fcd34d;margin-top:3px;
+  display:flex;justify-content:space-between}
+.af-slider.max{border-color:#a16207;background:#120d04}
+.af-budget{display:flex;justify-content:space-between;gap:8px;align-items:center;
+  border:3px solid #22344f;background:#070e1a;padding:6px 8px;margin-bottom:7px;
+  font-family:var(--mono);font-size:.64rem;color:#a8bcd8}
+.af-budget b{color:#fde68a}
+.af-budget .ok{color:#a7f3d0}
+.af-budget .bad{color:#fecdd3}
+.af-tinylist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px;
+  max-height:190px;overflow:auto;border:3px solid #1c2a42;background:#050b14;padding:5px}
+.af-tinylist button{
+  display:flex;align-items:center;gap:5px;text-align:left;padding:4px 6px;cursor:pointer;
+  border:2px solid #1c2a42;background:#081220;color:#c7d5ea;font-size:.66rem;font-weight:700;
+  font-family:var(--ui-font);transition:all .13s var(--ease)
+}
+.af-tinylist button:hover{border-color:#33527c;transform:translateY(-1px)}
+.af-tinylist button.on{border-color:#22d3ee;background:#0a2432;color:#a5f3fc}
+.af-tinylist button .fp{margin-left:auto;font-family:var(--mono);font-size:.55rem;color:#fcd34d}
+
+/* ---------- net health chip ---------- */
+#afNetHud{position:fixed;left:50%;transform:translateX(-50%);top:88px;z-index:29;
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;color:#a7f3d0;
+  background:rgba(4,35,29,.86);border:2px solid #0f766e;padding:2px 7px;pointer-events:none;
+  opacity:0;transition:opacity .2s}
+#afNetHud.on{opacity:1}
+#afNetHud.bad{color:#fecdd3;border-color:#9f1239;background:rgba(42,7,17,.9)}
+
+/* ---------- watermarks ---------- */
+#afVersion{position:fixed;right:6px;bottom:4px;z-index:12;font-family:var(--mono);
+  font-size:.5rem;letter-spacing:.14em;color:#1e3350;pointer-events:none}
+
+/* ---------- portrait / landscape mobile ---------- */
+@media(max-width:820px){
+  .hud-top{padding:4px 5px;gap:4px}
+  .hud-top .vitals{padding:2px 5px}
+  .vitals .bar{width:64px;height:10px}
+  #hudHpText{min-width:40px;font-size:.6rem}
+  .timer span{font-size:.7rem}
+  .hud-top .btn.ghost,.hud-top .icon-btn{font-size:.6rem;padding:3px 5px;min-width:0}
+  .hud-bottom{bottom:6px;padding:4px;border-radius:0;gap:4px;max-width:98vw}
+  .slot{padding:4px 6px;font-size:.62rem}
+  .slot .nm{display:none}
+  .combo{top:34%}
+  #afStyle{top:calc(34% + 52px);right:8px}
+  #afStyle .rank{font-size:1.5rem}
+  #afStyle .meter{width:96px}
+  .sheet{padding:10px;border-width:3px}
+  .char-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .map-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g2,.g3,.g4,.g6{grid-template-columns:1fr !important}
+  .armory{grid-template-columns:1fr}
+  #previewCanvas{height:150px}
+  h1.game-title{font-size:1.1rem !important}
+  .sheet-head{padding-right:30px;gap:6px}
+  #afP2Hud{bottom:76px;left:6px}
+  #afP2Hud .bar{width:70px}
+}
+@media(max-width:520px){
+  #touchLayer .stick{width:96px;height:96px;bottom:76px;left:10px}
+  #afAim{width:108px;height:108px;right:10px;bottom:70px}
+  #afTouchBtns{bottom:190px;right:10px;gap:6px}
+  #afTouchBtns button{min-width:54px;height:40px;font-size:.52rem}
+  #afStyle .rank{font-size:1.3rem}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .hud-top{padding:2px 4px}
+  #touchLayer .stick{bottom:54px;width:92px;height:92px}
+  #afAim{bottom:48px;width:104px;height:104px}
+  #afTouchBtns{bottom:auto;top:52%;right:8px;gap:5px}
+  #afTouchBtns button{height:34px;min-width:48px;font-size:.48rem}
+  .hud-bottom{bottom:2px;padding:2px 4px}
+  .slot{padding:2px 5px}
+  .slot .nm,.slot .ico{display:none}
+  #afStyle{top:auto;bottom:96px;right:8px}
+  #afStyle .meter{width:84px}
+}
+
 </style>
 </head>
 <body>
@@ -854,6 +1134,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
    ========================================================================== */
 (function () {
   'use strict';
+  var AFX;
 
   const $ = (id) => document.getElementById(id);
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -1179,7 +1460,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
       SPRITE_HIT[ch.id] = white;
     });
   }
-  const charById = (id) => CHARS.find((c) => c.id === id) || CHARS[0];
+  let charById = (id) => (AFX && AFX.LOOKS && AFX.LOOKS[id]) || CHARS.find((c) => c.id === id) || CHARS[0];
   /* ==========================================================================
      3. ARENAS — six destructible maps with distinct palettes & gimmicks
      ========================================================================== */
@@ -1251,7 +1532,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
       ]
     }
   ];
-  const mapById = (id) => MAPS.find((m) => m.id === id) || MAPS[0];
+  let mapById = (id) => MAPS.find((m) => m.id === id) || MAPS[0];
 
   /* ==========================================================================
      4. SKILLS · TRIGGERS · IMPACTS · ATTRIBUTES
@@ -1392,7 +1673,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
 
   /* ---------------------------- forge economy ---------------------------- */
   function makeWorkflow(skillId = 'punch') {
-    return { triggerId: 'single', skillId, impactId: 'none', sizeMult: 1, powerMult: 1, speedMult: 1 };
+    return { triggerId: 'single', skillId, impactId: 'none', sizeMult: 1, powerMult: 1, speedMult: 1, durationMult: 1 };
   }
   function slotCost(wf) {
     if (!wf) return 0;
@@ -1760,9 +2041,9 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
 
     const trig = GAME.mode === 'anything' ? (TRIGGERS.find((t) => t.id === wf.triggerId) || TRIGGERS[0]) : TRIGGERS[0];
     const impactId = GAME.mode === 'anything' ? wf.impactId : 'none';
-    const sizeM = GAME.mode === 'anything' ? wf.sizeMult : 1;
-    const powerM = GAME.mode === 'anything' ? wf.powerMult : 1;
-    const speedM = GAME.mode === 'anything' ? wf.speedMult : 1;
+    const sizeM = clamp(wf.sizeMult || 1, 0.5, 3);
+    const powerM = clamp(wf.powerMult || 1, 0.5, 3);
+    const speedM = clamp(wf.speedMult || 1, 0.5, 3);
 
     f.cds[slotIdx] = Math.max(0.16, sk.cd * f.cdMult);
     f.attackT = 0.24;
@@ -2122,17 +2403,25 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
         /* guest side: the opponent's body is driven purely by host snapshots */
         mx = 0; my = 0;
       } else if (f.isHuman) {
+        if (!f.local2) {
         if (GAME.keys.KeyA || GAME.keys.ArrowLeft) mx -= 1;
         if (GAME.keys.KeyD || GAME.keys.ArrowRight) mx += 1;
         if (GAME.keys.KeyW || GAME.keys.ArrowUp) my -= 1;
         if (GAME.keys.KeyS || GAME.keys.ArrowDown) my += 1;
         if (Math.hypot(GAME.touch.mx, GAME.touch.my) > 0.12) { mx = GAME.touch.mx; my = GAME.touch.my; }
         if (GAME.keys.Space) f.jumpBuf = 0.14;
+        } else {
+          /* local 2P: this fighter reads its own key block */
+          mx = f.inX || 0; my = f.inY || 0;
+          if (f.inJump) { f.jumpBuf = 0.14; f.inJump = false; }
+          if (f.inCast) cast(world, f, f.active);
+          if (typeof f.inAim === 'number') f.aim = f.inAim;
+        }
         /* the host owns casting in a net match; the guest only plays the
            animation and lets the authoritative bullet arrive in a snapshot */
         if (GAME.netRole === 'client') {
           if (GAME.mouse.down || GAME.touch.casting) f.attackT = Math.max(f.attackT, 0.06);
-        } else if (GAME.mouse.down || GAME.touch.casting) cast(world, f, f.active);
+        } else if (!f.local2 && (GAME.mouse.down || GAME.touch.casting)) cast(world, f, f.active);
       } else {
         const prof = BOT_PROFILES[GAME.botDiff] || BOT_PROFILES.fighter;
         f.aiT -= dt;
@@ -2205,8 +2494,14 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
         }
       }
 
-      f.wx = clamp(f.wx, -halfW + f.radius, halfW - f.radius);
-      f.wy = clamp(f.wy, -halfH + f.radius, halfH - f.radius);
+      if (world.voidEdges && !world.isPreview) {
+        /* open void rim: you can be knocked clean off the platform */
+        f.wx = clamp(f.wx, -halfW * 1.7, halfW * 1.7);
+        f.wy = clamp(f.wy, -halfH * 1.7, halfH * 1.7);
+      } else {
+        f.wx = clamp(f.wx, -halfW + f.radius, halfW - f.radius);
+        f.wy = clamp(f.wy, -halfH + f.radius, halfH - f.radius);
+      }
 
       world.props.forEach((p) => {
         if (f.wz < p.z * 0.75) {
@@ -2312,7 +2607,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
           if (Math.abs(b.wx - p.wx) > p.w * 0.5 + b.radius || Math.abs(b.wy - p.wy) > p.h * 0.5 + b.radius) continue;
           const owner = world.fighters.find((f) => f.id === b.ownerId);
           sparks(world, b.wx, b.wy, b.wz, b.color, 6, 200);
-          damageProp(world, p, b.dmg * 1.15, owner);
+          damageProp(world, p, b.dmg * 1.15 * AFX.velMul(world, b), owner);
           if (!b.pierce && b.kind !== 'car' && b.kind !== 'boulder') done = true;
           break;
         }
@@ -2338,10 +2633,10 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
           const a = Math.atan2(b.vy, b.vx);
           if (b.kind === 'grapple' && owner) {
             const pa = Math.atan2(owner.wy - t.wy, owner.wx - t.wx);
-            damage(world, t, owner, b.dmg, Math.cos(pa) * 440, Math.sin(pa) * 440, 150, b.impactId);
+            damage(world, t, owner, b.dmg * AFX.velMul(world, b), Math.cos(pa) * 440, Math.sin(pa) * 440, 150, b.impactId);
             floatText(world, t.wx, t.wy, t.wz + 14, '🪝 HOOKED', '#cbd5e1', 11);
           } else {
-            damage(world, t, owner, b.dmg, Math.cos(a) * b.kb, Math.sin(a) * b.kb, 150, b.impactId);
+            damage(world, t, owner, b.dmg * AFX.velMul(world, b), Math.cos(a) * b.kb, Math.sin(a) * b.kb, 150, b.impactId);
           }
           if (b.kind === 'lifesteal' && owner) {
             const steal = Math.round(b.dmg * 0.75);
@@ -3621,6 +3916,8 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
       ctx.fillRect(p.x - s * 0.3, p.y - s * 0.1, s * 0.6, s * 0.2);
     });
 
+    try { AFX.drawPlatforms(ctx, world, cam, W, H); } catch (e) {}
+
     /* depth-sorted props + fighters */
     const list = [];
     world.props.forEach((p) => list.push({ y: p.wy, z: 0, t: 'prop', o: p }));
@@ -3698,7 +3995,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
   /* ==========================================================================
      Part 4/5 — DOM UI: HUD, menus, armory, podium, rankings
      ========================================================================== */
-  const MODALS = ['menuModal', 'armoryModal', 'podiumModal', 'rankModal', 'netModal'];
+  const MODALS = ['menuModal', 'armoryModal', 'podiumModal', 'rankModal', 'netModal', 'lookModal'];
 
   function toast(msg, tone = 'sky') {
     const box = $('toasts');
@@ -4401,7 +4698,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
       netStatus('LINKED', true);
       netLog('Peer linked.', 'emerald');
       if (NET.side === 'client') {
-        netSend({ t: 'hello', name: playerName(), charId: GAME.charId });
+        netSend({ t: 'hello', name: playerName(), charId: GAME.charId, look: GAME.look });
         netLog('Linked to host — waiting for the arena to load.');
       } else {
         netLog('Guest linked — waiting for their fighter…');
@@ -4692,7 +4989,7 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
   function netHostStart() {
     if (!netOnline()) { toast('Nobody is connected yet.', 'amber'); return; }
     const roster = [{ id: 'hero', name: playerName(), charId: GAME.charId }]
-      .concat(NET.peers.filter(peerOpen).map((p) => ({ id: p.id, name: p.name, charId: p.charId })));
+      .concat(NET.peers.filter(peerOpen).map((p) => ({ id: p.id, name: p.name, charId: p.charId, look: p.look || null })));
     const base = {
       mapId: GAME.mapId,
       mode: GAME.mode,
@@ -5167,6 +5464,2371 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
 
     requestAnimationFrame(loop);
   }
+
+  /* ===== AFX 2.6 upgrade layer (auto-generated, do not hand-edit) ===== */
+/* ============================================================================
+   AFX 2.6 — core: state, layered audio bus, fighter looks, multi-tier arenas
+   This block is injected INSIDE the game's IIFE, just before bootstrap, so
+   every internal binding (step, cast, damage, SPRITES, MAPS, NET, SFX ...)
+   is reachable and every function declaration is re-assignable.
+   ========================================================================== */
+(function AFX_BOOT() {
+  'use strict';
+
+  const AFX = {
+    on: {
+      preStep: [], postStep: [], preCast: [], postCast: [],
+      preDamage: [], postDamage: [], postRender: []
+    },
+    audio: null, style: null, net: null, look: null, input: null,
+    version: '2.6'
+  };
+  try { window.__AFX = AFX; } catch (e) {}
+
+  const A = (fn, args) => {
+    for (let i = 0; i < AFX.on[fn].length; i++) {
+      try { AFX.on[fn][i].apply(null, args); } catch (e) { console.warn('[AFX]', fn, e); }
+    }
+  };
+  AFX.emit = A;
+  AFX.warn = (m, e) => { try { console.warn('[AFX] ' + m, e || ''); } catch (err) {} };
+
+  /* ------------------------------------------------------------------ *
+   *  LAYERED AUDIO — compressor bus + stereo panned synthesis
+   * ------------------------------------------------------------------ */
+  const AU = {
+    init() {
+      const ctx = SFX.ctx;
+      if (!ctx || this.bus) return this.bus;
+      try {
+        const comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -18;
+        comp.knee.value = 22;
+        comp.ratio.value = 7;
+        comp.attack.value = 0.003;
+        comp.release.value = 0.22;
+        comp.connect(ctx.destination);
+        try { SFX.master.disconnect(); } catch (e) {}
+        SFX.master.gain.value = 0.5;
+        SFX.master.connect(comp);
+        this.bus = comp;
+        this.ctx = ctx;
+        this.noiseBuf = null;
+      } catch (e) { AFX.warn('audio bus', e); }
+      return this.bus;
+    },
+    ready() {
+      if (SFX.muted || !SFX.armed) return null;
+      if (!SFX.ctx) { try { SFX.ensure(); } catch (e) { return null; } }
+      return this.init();
+    },
+    noise(dur) {
+      const ctx = this.ctx;
+      const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        last = last * 0.42 + w * 0.58;
+        d[i] = last * Math.pow(1 - i / len, 1.6);
+      }
+      return buf;
+    },
+    out(pan) {
+      const ctx = this.ctx;
+      let node;
+      try {
+        node = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+        if (node.pan) node.pan.value = clamp(pan || 0, -1, 1);
+      } catch (e) { node = ctx.createGain(); }
+      node.connect(this.bus);
+      return node;
+    },
+    /* impact transient + sweeping plasma tail scaled by shot speed */
+    shot(speed, color, pan) {
+      if (!this.ready()) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const out = this.out(pan);
+      const k = clamp((speed || 600) / 1100, 0.35, 2.2);
+
+      const snap = ctx.createBufferSource();
+      snap.buffer = this.noise(0.045);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 2100;
+      const sg = ctx.createGain(); sg.gain.value = 0.16;
+      snap.connect(hp).connect(sg).connect(out);
+      snap.start(t);
+
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(240 + 900 * k, t);
+      osc.frequency.exponentialRampToValueAtTime(90 + 60 * k, t + 0.16);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.Q.value = 1.2;
+      bp.frequency.setValueAtTime(1200 * k, t);
+      bp.frequency.exponentialRampToValueAtTime(420, t + 0.18);
+      const og = ctx.createGain();
+      og.gain.setValueAtTime(0.1 * Math.min(1.5, k), t);
+      og.gain.exponentialRampToValueAtTime(0.0006, t + 0.2);
+      osc.connect(bp).connect(og).connect(out);
+      osc.start(t); osc.stop(t + 0.24);
+
+      const tail = ctx.createBufferSource();
+      tail.buffer = this.noise(0.16);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 900 + 1400 * k;
+      const tg = ctx.createGain(); tg.gain.value = 0.07 * Math.min(1.6, k);
+      tail.connect(lp).connect(tg).connect(out);
+      tail.start(t + 0.015);
+    },
+    /* sub-bass drop + filtered rumble + debris crackle */
+    boom(power, pan) {
+      if (!this.ready()) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const p = clamp(power || 1, 0.4, 3);
+      const out = this.out(pan);
+
+      const sub = ctx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(140, t);
+      sub.frequency.exponentialRampToValueAtTime(28, t + 0.5);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.32 * p, t);
+      g.gain.exponentialRampToValueAtTime(0.0007, t + 0.6);
+      sub.connect(g).connect(out);
+      sub.start(t); sub.stop(t + 0.66);
+
+      const rum = ctx.createBufferSource();
+      rum.buffer = this.noise(0.55);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 320 + 260 * p;
+      const rg = ctx.createGain(); rg.gain.value = 0.2 * p;
+      rum.connect(lp).connect(rg).connect(out);
+      rum.start(t + 0.01);
+
+      const crack = ctx.createBufferSource();
+      crack.buffer = this.noise(0.22);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 3800;
+      const cg = ctx.createGain(); cg.gain.value = 0.09 * p;
+      crack.connect(hp).connect(cg).connect(out);
+      crack.start(t + 0.02);
+    },
+    whoosh(power, pan) {
+      if (!this.ready()) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const out = this.out(pan);
+      const src = ctx.createBufferSource();
+      src.buffer = this.noise(0.26);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.Q.value = 0.9;
+      bp.frequency.setValueAtTime(320, t);
+      bp.frequency.exponentialRampToValueAtTime(2600, t + 0.2);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.15 * clamp(power || 1, 0.4, 2), t + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + 0.26);
+      src.connect(bp).connect(g).connect(out);
+      src.start(t);
+    },
+    thud(power, pan) {
+      if (!this.ready()) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const p = clamp(power || 1, 0.5, 2.4);
+      const out = this.out(pan);
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(180 * p, t);
+      o.frequency.exponentialRampToValueAtTime(44, t + 0.22);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.24 * p, t);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + 0.3);
+      o.connect(g).connect(out);
+      o.start(t); o.stop(t + 0.34);
+      const n = ctx.createBufferSource();
+      n.buffer = this.noise(0.12);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+      const ng = ctx.createGain(); ng.gain.value = 0.12 * p;
+      n.connect(lp).connect(ng).connect(out);
+      n.start(t);
+    },
+    /* mechanical chain ratchet for the grapple */
+    ratchet(pan) {
+      if (!this.ready()) return;
+      const ctx = this.ctx;
+      const out = this.out(pan);
+      for (let i = 0; i < 6; i++) {
+        const t = ctx.currentTime + i * 0.045;
+        const o = ctx.createOscillator();
+        o.type = 'square';
+        o.frequency.setValueAtTime(880 + (i % 2) * 260, t);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.045, t);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + 0.05);
+        o.connect(g).connect(out);
+        o.start(t); o.stop(t + 0.06);
+      }
+    },
+    zap(pan) {
+      if (!this.ready()) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const out = this.out(pan);
+      const o = ctx.createOscillator();
+      o.type = 'square';
+      o.frequency.setValueAtTime(1400, t);
+      o.frequency.exponentialRampToValueAtTime(220, t + 0.1);
+      const g = ctx.createGain(); g.gain.value = 0.06;
+      o.connect(g).connect(out);
+      o.start(t); o.stop(t + 0.12);
+    }
+  };
+  AFX.audio = AU;
+
+  /* route the legacy synth through the compressor too */
+  try {
+    const legacyEnsure = SFX.ensure;
+    SFX.ensure = function AFX_ensure() {
+      const ctx = legacyEnsure.call(SFX);
+      if (ctx) { try { AU.init(); } catch (e) {} }
+      return ctx;
+    };
+    const legacyHit = SFX.hit;
+    SFX.hit = function AFX_hit(heavy) {
+      try { legacyHit.call(SFX, heavy); } catch (e) {}
+      try { AU.thud(heavy ? 1.5 : 0.7, AFX.panSource(WORLD)); } catch (e) {}
+    };
+    const legacyBreak = SFX.propBreak;
+    SFX.propBreak = function AFX_break() {
+      try { legacyBreak.call(SFX); } catch (e) {}
+      try { AU.boom(0.8, AFX.panSource(WORLD)); } catch (e) {}
+    };
+  } catch (e) { AFX.warn('sfx wrap', e); }
+
+  AFX.panSource = (world) => {
+    try {
+      const f = world && world.fighters && world.fighters[0];
+      return f ? clamp((f.wx - GAME.cam.x) / 760, -1, 1) : 0;
+    } catch (e) { return 0; }
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  ROOFTOP SKYLINE — the abyss below the helipad
+   * ------------------------------------------------------------------ */
+  try {
+    const _backdrop = drawBackdrop;
+    drawBackdrop = function AFX_backdrop(ctx, map, W, H, cam, t) {
+      if (!map || map.id !== 'rooftop') return _backdrop(ctx, map, W, H, cam, t);
+      const ox = -cam.x * cam.zoom * 0.04;
+      /* abyss haze */
+      const g = ctx.createLinearGradient(0, H * 0.3, 0, H);
+      g.addColorStop(0, 'rgba(8,14,26,0)');
+      g.addColorStop(0.55, 'rgba(6,10,18,.55)');
+      g.addColorStop(1, 'rgba(2,3,7,.96)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, H * 0.28, W, H);
+      /* two parallax skyline bands of lit towers */
+      for (let layer = 0; layer < 2; layer++) {
+        const bw = 44 + layer * 22;
+        const baseY = H * (0.74 + layer * 0.06);
+        for (let i = -1; i < Math.ceil(W / bw) + 2; i++) {
+          const n = tileNoise(i + layer * 11, layer + 3);
+          const hgt = (0.16 + n * 0.42) * H;
+          const x = ((i * bw + ox * (1 + layer * 1.6)) % (W + bw * 2) + W + bw * 2) % (W + bw * 2) - bw;
+          ctx.fillStyle = layer === 0 ? '#080e18' : '#0d1626';
+          ctx.fillRect(x, baseY - hgt, bw - 9, hgt + 6);
+          if (layer === 1) {
+            for (let wy = 0; wy < 8; wy++) {
+              for (let wx = 0; wx < 3; wx++) {
+                if (tileNoise(i * 17 + wx, layer * 9 + wy) > 0.55) continue;
+                ctx.fillStyle = tileNoise(i + wx, wy) > 0.5
+                  ? 'rgba(251,191,36,.34)' : 'rgba(56,189,248,.26)';
+                ctx.fillRect(x + 6 + wx * 11, baseY - hgt + 8 + wy * 15, 5, 6);
+              }
+            }
+            /* aircraft warning light */
+            if (n > 0.72) {
+              ctx.fillStyle = 'rgba(244,63,94,' + (0.35 + 0.35 * Math.sin(t * 2.4 + i)) + ')';
+              ctx.fillRect(x + bw * 0.4, baseY - hgt - 3, 3, 3);
+            }
+          }
+        }
+      }
+      /* moon + drifting cloud band */
+      const mr = Math.min(W, H) * 0.06;
+      ctx.fillStyle = 'rgba(226,240,255,.1)';
+      ctx.beginPath(); ctx.arc(W * 0.78, H * 0.14, mr * 2.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(226,240,255,.5)';
+      ctx.beginPath(); ctx.arc(W * 0.78, H * 0.14, mr * 0.8, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(12,20,34,.5)';
+      for (let i = 0; i < 7; i++) {
+        const cx = ((i * 260 + t * 22) % (W + 320)) - 160;
+        const cy = H * (0.2 + (i % 3) * 0.09);
+        ctx.fillRect(cx, cy, 190, 7);
+        ctx.fillRect(cx + 34, cy - 6, 120, 6);
+      }
+    };
+  } catch (e) { AFX.warn('rooftop backdrop', e); }
+
+  /* ------------------------------------------------------------------ *
+   *  FIGHTER LOOKS — per-fighter palettes + aura trails
+   * ------------------------------------------------------------------ */
+  const LOOKS = {};
+  AFX.LOOKS = LOOKS;
+  const PALETTE = ['#38bdf8', '#22d3ee', '#34d399', '#a3e635', '#facc15', '#fbbf24',
+    '#fb923c', '#f97316', '#ef4444', '#f43f5e', '#fb7185', '#e879f9', '#a855f7',
+    '#818cf8', '#6366f1', '#94a3b8', '#e2e8f0', '#ffffff', '#0f172a', '#1e293b'];
+  AFX.PALETTE = PALETTE;
+  AFX.AURAS = [
+    { id: 'none', name: 'NONE', color: '#94a3b8' },
+    { id: 'ember', name: 'EMBER', color: '#fb923c' },
+    { id: 'frost', name: 'FROST', color: '#7dd3fc' },
+    { id: 'void', name: 'VOID', color: '#a855f7' },
+    { id: 'volt', name: 'VOLT', color: '#facc15' },
+    { id: 'toxic', name: 'TOXIC', color: '#84cc16' }
+  ];
+
+  function lookKey(baseId, look) {
+    if (!look) return baseId;
+    const sig = [look.p, look.s, look.a, look.v].map((c) => String(c || '').replace(/[^#0-9a-f]/gi, '')).join('');
+    let h = 0;
+    for (let i = 0; i < sig.length; i++) h = (h * 31 + sig.charCodeAt(i)) | 0;
+    return baseId + '~' + (h >>> 0).toString(36);
+  }
+  AFX.lookKey = lookKey;
+
+  function registerLook(baseId, look) {
+    const base = CHARS.find((c) => c.id === baseId) || CHARS[0];
+    const key = lookKey(base.id, look);
+    if (LOOKS[key]) return key;
+    const ch = {
+      id: base.id, name: base.name, short: base.short, icon: base.icon, role: base.role,
+      p: look.p || base.p, s: look.s || base.s, a: look.a || base.a, v: look.v || base.v,
+      aura: look.aura || 'none', lookSig: key
+    };
+    LOOKS[key] = ch;
+    try {
+      SPRITES[key] = [0, 1, 2, 3].map((p) => drawSprite(ch, p));
+      const white = document.createElement('canvas');
+      white.width = 20; white.height = 26;
+      const wc = white.getContext('2d');
+      wc.imageSmoothingEnabled = false;
+      wc.drawImage(SPRITES[key][0], 0, 0);
+      wc.globalCompositeOperation = 'source-atop';
+      wc.fillStyle = '#ffffff';
+      wc.fillRect(0, 0, 20, 26);
+      SPRITE_HIT[key] = white;
+    } catch (e) { AFX.warn('look sprite', e); }
+    return key;
+  }
+  AFX.registerLook = registerLook;
+
+  AFX.defaultLook = () => {
+    const base = CHARS.find((c) => c.id === GAME.charId) || CHARS[0];
+    return { p: base.p, s: base.s, a: base.a, v: base.v, aura: 'ember' };
+  };
+  if (!GAME.look) GAME.look = AFX.defaultLook();
+
+  AFX.heroSpriteId = () => {
+    try { return registerLook(GAME.charId, GAME.look); } catch (e) { return GAME.charId; }
+  };
+  /* every fighter carries its own sprite key so two players can share a class */
+  AFX.syncFighterLook = (f) => {
+    if (!f) return;
+    if (f.isHuman && !f.netRemote) {
+      f.charId = AFX.heroSpriteId();
+      f.def = charById(f.charId) || f.def;
+      f.auraId = (GAME.look && GAME.look.aura) || 'none';
+    } else if (f.lookSig) {
+      f.charId = registerLook(f.lookSig.base, f.lookSig);
+      f.def = charById(f.charId) || f.def;
+      f.auraId = f.lookSig.aura || 'none';
+    }
+  };
+  AFX.auraColor = (id) => {
+    const a = AFX.AURAS.find((x) => x.id === id);
+    return a ? a.color : null;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  MULTI-TIER ARENAS — platforms, void edges, ring-outs, rooftop map
+   * ------------------------------------------------------------------ */
+  const ROOFTOP = {
+    id: 'rooftop', name: 'Skyscraper Rooftop', icon: '🏙',
+    gimmick: 'Helipad void edges, wind gusts & AC units',
+    floorA: '#1a2130', floorB: '#131a26', trim: '#fbbf24', glow: '#f59e0b',
+    ember: '#fde68a', ground: '#05070d', decal: 'plates', ambient: 'neon',
+    gravity: 1000, friction: 0.9, wind: 130,
+    props: [
+      { name: 'AC Unit', body: '#64748b', top: '#cbd5e1', w: 46, h: 34, z: 30, hp: 70, kind: 'crate' },
+      { name: 'Antenna Mast', body: '#475569', top: '#fbbf24', w: 20, h: 20, z: 78, hp: 40, kind: 'tesla' },
+      { name: 'Water Tank', body: '#94a3b8', top: '#e2e8f0', w: 42, h: 42, z: 66, hp: 95, kind: 'explosive' },
+      { name: 'Vent Fan', body: '#0f766e', top: '#5eead4', w: 30, h: 30, z: 22, hp: 35, kind: 'vent' }
+    ]
+  };
+  try {
+    if (!MAPS.some((m) => m.id === 'rooftop')) MAPS.push(ROOFTOP);
+  } catch (e) { AFX.warn('rooftop map', e); }
+
+  const PLATFORMS = {
+    metro: (hw, hh) => ([
+      { id: 'm1', wx: -hw * 0.52, wy: -hh * 0.42, w: 190, h: 96, z: 46 },
+      { id: 'm2', wx: hw * 0.52, wy: hh * 0.42, w: 190, h: 96, z: 46 },
+      { id: 'm3', wx: 0, wy: 0, w: 132, h: 86, z: 80, hp: 130 }
+    ]),
+    foundry: (hw, hh) => ([
+      { id: 'f1', wx: 0, wy: -hh * 0.62, w: hw * 0.7, h: 74, z: 58 },
+      { id: 'f2', wx: 0, wy: hh * 0.62, w: hw * 0.7, h: 74, z: 58 },
+      { id: 'f3', wx: -hw * 0.62, wy: 0, w: 74, h: hh * 0.6, z: 96, hp: 120 }
+    ]),
+    cyber: (hw, hh) => ([
+      { id: 'c1', wx: -hw * 0.6, wy: 0, w: 150, h: 150, z: 62 },
+      { id: 'c2', wx: hw * 0.6, wy: 0, w: 150, h: 150, z: 62 },
+      { id: 'c3', wx: 0, wy: -hh * 0.6, w: 176, h: 96, z: 112, hp: 110 }
+    ]),
+    glacier: (hw, hh) => ([
+      { id: 'g1', wx: -hw * 0.45, wy: hh * 0.45, w: 200, h: 120, z: 38 },
+      { id: 'g2', wx: hw * 0.45, wy: -hh * 0.45, w: 200, h: 120, z: 38 },
+      { id: 'g3', wx: 0, wy: 0, w: 120, h: 120, z: 74, hp: 100 }
+    ]),
+    ruins: (hw, hh) => ([
+      { id: 'r1', wx: -hw * 0.58, wy: -hh * 0.5, w: 170, h: 110, z: 52 },
+      { id: 'r2', wx: hw * 0.58, wy: -hh * 0.5, w: 170, h: 110, z: 52 },
+      { id: 'r3', wx: 0, wy: hh * 0.62, w: 220, h: 96, z: 88, hp: 140 }
+    ]),
+    orbital: (hw, hh) => ([
+      { id: 'o1', wx: -hw * 0.55, wy: 0, w: 140, h: 140, z: 70 },
+      { id: 'o2', wx: hw * 0.55, wy: 0, w: 140, h: 140, z: 70 },
+      { id: 'o3', wx: 0, wy: 0, w: 120, h: 120, z: 132, hp: 90 }
+    ]),
+    rooftop: (hw, hh) => ([
+      { id: 't1', wx: 0, wy: 0, w: 210, h: 160, z: 54, hp: 160, helipad: true },
+      { id: 't2', wx: -hw * 0.66, wy: hh * 0.58, w: 150, h: 92, z: 92, hp: 90 },
+      { id: 't3', wx: hw * 0.66, wy: -hh * 0.58, w: 150, h: 92, z: 92, hp: 90 },
+      { id: 't4', wx: 0, wy: -hh * 0.7, w: 96, h: 70, z: 148, hp: 70 }
+    ])
+  };
+  AFX.PLATFORMS = PLATFORMS;
+
+  AFX.buildArena = (world, mapId, scale) => {
+    const s = scale || 1;
+    const hw = Math.round(520 * s), hh = Math.round(360 * s);
+    const make = PLATFORMS[mapId];
+    const list = make ? make(hw, hh) : [];
+    world.platforms = list.map((p) => Object.assign({ maxHp: p.hp || 0 }, p));
+    world.voidEdges = !world.isPreview;
+    world.wind = mapId === 'rooftop' ? { ax: 1, ay: 0, t: 0, power: 150 } : null;
+    /* a lift pad under every tier so ground fighters can reach the catwalks */
+    if (!world.isPreview && list.length) {
+      const pad = list[0];
+      world.hazards.push({
+        id: 'af_lift', kind: 'jumppad', wx: pad.wx, wy: pad.wy + pad.h * 0.5 + 46,
+        radius: 40, cd: 0, lift: pad.z + 40, big: true
+      });
+    }
+    return world.platforms;
+  };
+
+  /* highest walkable surface under a point (null = open void) */
+  AFX.groundAt = (world, x, y, z) => {
+    let best = null;
+    const plats = world.platforms || [];
+    for (let i = 0; i < plats.length; i++) {
+      const p = plats[i];
+      if (Math.abs(x - p.wx) > p.w / 2 + 8) continue;
+      if (Math.abs(y - p.wy) > p.h / 2 + 8) continue;
+      if (z < p.z - 10) continue;
+      if (best === null || p.z > best) best = p.z;
+    }
+    return best;
+  };
+
+  const RING_OUT = -140;
+  AFX.ringOut = (world, f) => {
+    if (!f || f.respawnT > 0) return;
+    const killer = world.fighters.find((o) => o.id === f.lastHitBy) || null;
+    f.wz = 0;
+    f.voidV = 0;
+    f.hp = Math.max(0, f.hp);
+    try { knockOut(world, f, killer); } catch (e) { AFX.warn('ring out', e); }
+    try {
+      floatText(world, f.wx, f.wy, 60, 'RING OUT', '#fbbf24', 18);
+      ring(world, f.wx, f.wy, '#fbbf24', 90, 0.5);
+      shake(12);
+      AU.boom(1.8, 0);
+    } catch (e) {}
+  };
+
+  AFX.on.postStep.push(function AFX_arena(world, dt) {
+    if (!world || world.isPreview) return;
+    const client = GAME.netRole === 'client';
+    const scale = GAME.mapScale;
+    const hw = Math.round(520 * scale), hh = Math.round(360 * scale);
+    const plats = world.platforms || [];
+    const roof = world.map && world.map.id === 'rooftop';
+
+    /* --- destructible ledges take splash damage from fresh explosions --- */
+    if (!client) {
+      world.zones.forEach((z) => {
+        if (z.kind !== 'explosion' || z.__afHit) return;
+        if (z.life < (z.max || 0.3) - 0.02) return;
+        z.__afHit = true;
+        for (let i = plats.length - 1; i >= 0; i--) {
+          const p = plats[i];
+          if (!p.maxHp) continue;
+          const d = Math.hypot(p.wx - z.wx, p.wy - z.wy);
+          if (d > z.radius + Math.max(p.w, p.h) * 0.5) continue;
+          p.hp -= (z.dmg || 20) * 1.4;
+          if (p.hp <= 0) {
+            plats.splice(i, 1);
+            try {
+              burst(world, p.wx, p.wy, p.z, '#fbbf24', 26, 300, 900);
+              ring(world, p.wx, p.wy, '#fbbf24', Math.max(p.w, p.h) * 0.6, 0.4, p.z);
+              floatText(world, p.wx, p.wy, p.z, 'LEDGE SHATTERED', '#fbbf24', 12);
+              shake(5); AU.boom(1.1, 0);
+            } catch (e) {}
+          }
+        }
+      });
+    }
+
+    /* --- wind on the rooftop --- */
+    if (roof && world.wind) {
+      world.wind.t += dt;
+      const gust = Math.sin(world.wind.t * 0.8) * Math.cos(world.wind.t * 0.31);
+      world.wind.vx = Math.cos(world.wind.t * 0.42) * world.wind.power * (0.55 + gust * 0.75);
+      world.wind.vy = Math.sin(world.wind.t * 0.37) * world.wind.power * 0.55;
+    }
+
+    world.fighters.forEach((f) => {
+      if (f.respawnT > 0) { f.voidV = 0; f.zPrev = f.wz; return; }
+      const zPrev = typeof f.zPrev === 'number' ? f.zPrev : f.wz;
+
+      /* --- wind push --- */
+      if (roof && world.wind && f.wz > 6) {
+        f.vx += (world.wind.vx || 0) * dt;
+        f.vy += (world.wind.vy || 0) * dt;
+      }
+      if (client) { f.zPrev = f.wz; return; }
+
+      const outside = Math.abs(f.wx) > hw - 4 || Math.abs(f.wy) > hh - 4;
+      if (outside) {
+        /* knocked past the rim: no floor, just the long drop */
+        f.voidV = (f.voidV || 0) + 1500 * dt;
+        f.wz -= f.voidV * dt;
+        f.vz = 0;
+        if (f.wz < RING_OUT) AFX.ringOut(world, f);
+      } else {
+        f.voidV = 0;
+        if (f.wz < 0) f.wz = 0;
+        const g = AFX.groundAt(world, f.wx, f.wy, zPrev + 2);
+        if (g !== null && g > 0) {
+          const landed = (zPrev >= g - 3 && f.vz <= 0 && f.wz <= g + 2);
+          if (landed || (Math.abs(f.wz - g) < 2 && f.vz <= 0)) {
+            f.wz = g; f.vz = 0;
+            if (f.slamT > 0) AFX.slamImpact(world, f);
+          }
+        } else if (!AFX.groundAt(world, f.wx, f.wy, zPrev + 2) && zPrev > 26 && f.wz <= 0) {
+          f.wz = 0;
+        }
+      }
+      f.zPrev = f.wz;
+    });
+
+    /* --- lift pads fling you onto the catwalks --- */
+    world.hazards.forEach((h) => {
+      if (h.kind !== 'jumppad' || !h.big) return;
+      if (h.cd > 0) { h.cd -= dt; return; }
+      world.fighters.forEach((f) => {
+        if (f.respawnT > 0 || f.wz > h.lift - 20) return;
+        if (Math.hypot(f.wx - h.wx, f.wy - h.wy) > h.radius + f.radius) return;
+        f.vz = Math.max(f.vz, 760);
+        f.wz = Math.max(f.wz, 2);
+        h.cd = 0.7;
+        try { ring(world, h.wx, h.wy, '#67e8f9', h.radius, 0.35); AU.whoosh(1.2, 0); } catch (e) {}
+      });
+    });
+  });
+
+  AFX.drawPlatforms = function AFX_arenaDraw(ctx, world, cam, W, H) {
+    if (!world || !world.platforms || !world.platforms.length) return;
+    const z = cam.zoom;
+    const list = world.platforms.slice().sort((a, b) => (a.z - b.z));
+    list.forEach((p) => {
+      const c = w2s(p.wx, p.wy, p.z, cam, W, H);
+      const pw = p.w * z, ph = p.h * ISO * z, pz = 20 * z;
+      ctx.save();
+      /* side skirt */
+      ctx.fillStyle = 'rgba(4,8,15,.85)';
+      ctx.fillRect(c.x - pw / 2, c.y + ph * 0.2, pw, pz + 12 * z);
+      ctx.fillStyle = p.helipad ? '#1b2436' : '#121b2b';
+      ctx.fillRect(c.x - pw / 2, c.y + ph * 0.2, pw, pz);
+      /* top plate */
+      ctx.fillStyle = p.maxHp ? (p.hp / p.maxHp < 0.45 ? '#3a2a12' : '#1b2b3f') : '#1a2b40';
+      ctx.fillRect(c.x - pw / 2, c.y - ph / 2, pw, ph);
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.fillRect(c.x - pw / 2, c.y - ph / 2, pw, Math.max(2, ph * 0.1));
+      ctx.strokeStyle = 'rgba(251,191,36,.55)';
+      ctx.lineWidth = Math.max(1.5, 2 * z);
+      ctx.strokeRect(c.x - pw / 2, c.y - ph / 2, pw, ph);
+      /* helipad marking */
+      if (p.helipad) {
+        ctx.strokeStyle = 'rgba(251,191,36,.75)';
+        ctx.lineWidth = Math.max(2, 3 * z);
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, pw * 0.26, ph * 0.26, 0, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(c.x - pw * 0.1, c.y - ph * 0.12);
+        ctx.lineTo(c.x - pw * 0.1, c.y + ph * 0.12);
+        ctx.moveTo(c.x + pw * 0.1, c.y - ph * 0.12);
+        ctx.lineTo(c.x + pw * 0.1, c.y + ph * 0.12);
+        ctx.moveTo(c.x - pw * 0.1, c.y);
+        ctx.lineTo(c.x + pw * 0.1, c.y);
+        ctx.stroke();
+      }
+      /* damage bar for destructible ledges */
+      if (p.maxHp && p.hp < p.maxHp) {
+        const bw = pw * 0.6;
+        ctx.fillStyle = 'rgba(3,7,13,.9)';
+        ctx.fillRect(c.x - bw / 2, c.y - ph / 2 - 8 * z, bw, 4 * z);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(c.x - bw / 2, c.y - ph / 2 - 8 * z, bw * clamp(p.hp / p.maxHp, 0, 1), 4 * z);
+      }
+      ctx.restore();
+    });
+  };
+
+  AFX.emit = A;
+})();
+
+/* ============================================================================
+   AFX 2.6 — movement tech (dash / slide / slam / dash-jump), grapple rework,
+   local shared-keyboard 2P input and auto-framing camera.
+   ========================================================================== */
+(function AFX_MOVE() {
+  'use strict';
+  const AFX = window.__AFX;
+  if (!AFX) return;
+  AFX.on.preRender = AFX.on.preRender || [];
+
+  const angDiff = (a, b) => {
+    let d = a - b;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  };
+  AFX.angDiff = angDiff;
+
+  const state = (f) => {
+    if (!f.__mv) f.__mv = { dashCd: 0, dashT: 0, dashDir: 0, slideT: 0, stam: 3, stamT: 0, slamJumpT: 0, ghostT: 0 };
+    return f.__mv;
+  };
+  AFX.state = state;
+
+  const isHero = (f) => f && WORLD && WORLD.fighters && WORLD.fighters.indexOf(f) >= 0;
+
+  /* ------------------------------------------------------------------ *
+   *  DASH / SLIDE / SLAM
+   * ------------------------------------------------------------------ */
+  AFX.tryDash = (f, dirOverride) => {
+    if (!f || f.respawnT > 0) return false;
+    const mv = state(f);
+    if (mv.dashCd > 0 || mv.stam <= 0) return false;
+    mv.stam--; mv.stamT = 0; mv.dashCd = 0.26;
+    mv.dashT = 0.17;
+    const a = (typeof dirOverride === 'number') ? dirOverride : f.aim;
+    mv.dashDir = a;
+    f.invulnT = Math.max(f.invulnT || 0, 0.16);
+    f.squashX = 1.3; f.squashY = 0.74;
+    try {
+      AFX.audio.whoosh(1.35, clamp((f.wx - GAME.cam.x) / 760, -1, 1));
+      AFX.audio.zap(clamp((f.wx - GAME.cam.x) / 760, -1, 1));
+      sparks(WORLD, f.wx, f.wy, f.wz + 12, '#67e8f9', 9, 300, a + Math.PI, 1.4);
+      ring(WORLD, f.wx, f.wy, '#22d3ee', 26, 0.2, f.wz + 8);
+    } catch (e) {}
+    return true;
+  };
+
+  AFX.tryJump = (f) => {
+    if (!f || f.respawnT > 0) return false;
+    const mv = state(f);
+    /* slam-jump: bounce straight back up out of a ground slam */
+    if (mv.slamJumpT > 0) {
+      mv.slamJumpT = 0;
+      f.vz = f.jumpPower * 1.5;
+      f.squashX = 0.7; f.squashY = 1.4;
+      try {
+        AFX.audio.whoosh(1.5, 0);
+        ring(WORLD, f.wx, f.wy, '#fbbf24', 40, 0.3, 6);
+        floatText(WORLD, f.wx, f.wy, f.wz + 20, 'SLAM JUMP', '#fbbf24', 12);
+      } catch (e) {}
+      return true;
+    }
+    /* dash-jump / slide-jump: convert the burst into a long aerial arc */
+    if (mv.dashT > 0 || mv.slideT > 0.02) {
+      const keep = mv.dashT > 0 ? 1.5 : 1.32;
+      f.vx *= keep; f.vy *= keep;
+      f.vz = f.jumpPower * (mv.dashT > 0 ? 1.12 : 1.05);
+      f.wz = Math.max(f.wz, 1);
+      f.kbT = Math.max(f.kbT, 0.12);
+      mv.dashT = 0; mv.slideT = 0;
+      f.squashX = 0.66; f.squashY = 1.36;
+      try {
+        AFX.audio.whoosh(1.1, 0);
+        floatText(WORLD, f.wx, f.wy, f.wz + 24, mv.dashT ? 'DASH JUMP' : 'SLIDE JUMP', '#a5f3fc', 11);
+      } catch (e) {}
+      return true;
+    }
+    return false;
+  };
+
+  AFX.trySlam = (f) => {
+    if (!f || f.respawnT > 0) return false;
+    if (f.wz <= 1) return false;
+    f.vz = -950;
+    f.slamT = 0.95;
+    f.squashX = 0.82; f.squashY = 1.24;
+    try { AFX.audio.whoosh(0.9, 0); } catch (e) {}
+    return true;
+  };
+
+  AFX.slamImpact = (world, f) => {
+    f.slamT = 0;
+    const mv = state(f);
+    mv.slamJumpT = 0.26;
+    f.wz = Math.max(0, f.wz);
+    const dmg = 26 + Math.min(26, Math.abs(f.vz || 0) * 0.02);
+    try {
+      world.zones.push({
+        kind: 'explosion', ownerId: f.id, wx: f.wx, wy: f.wy,
+        radius: 116, dmg, kb: 380, color: '#fbbf24', life: 0.32, max: 0.32
+      });
+      burst(world, f.wx, f.wy, 8, '#fde68a', 24, 320, 900);
+      ring(world, f.wx, f.wy, '#fbbf24', 120, 0.4, 6);
+      ring(world, f.wx, f.wy, '#ffffff', 64, 0.24, 10);
+      floatText(world, f.wx, f.wy, f.wz + 18, 'SLAM', '#fbbf24', 14);
+      shake(9);
+      GAME.freeze = Math.max(GAME.freeze, 0.06);
+      GAME.camKick = { x: 0, y: 1, t: 0.22 };
+      AFX.audio.thud(1.7, clamp((f.wx - GAME.cam.x) / 760, -1, 1));
+      AFX.audio.boom(1.3, clamp((f.wx - GAME.cam.x) / 760, -1, 1));
+    } catch (e) { AFX.warn('slam', e); }
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  GRAPPLE — latch fighters, props, terrain, rim; pull target or self
+   * ------------------------------------------------------------------ */
+  AFX.releaseGrap = (f, launch) => {
+    if (!f || !f.grap) return;
+    const g = f.grap;
+    f.grap = null;
+    if (launch) {
+      f.vz = Math.max(f.vz, 560);
+      f.vx *= 1.18; f.vy *= 1.18;
+      f.kbT = Math.max(f.kbT, 0.15);
+      try {
+        sparks(WORLD, f.wx, f.wy, f.wz + 16, '#a5f3fc', 12, 320);
+        ring(WORLD, g.x, g.y, '#a5f3fc', 26, 0.22, g.z);
+        AFX.audio.whoosh(1.2, 0);
+      } catch (e) {}
+    }
+  };
+
+  AFX.grappleCast = (world, f, sk, wf) => {
+    const sizeM = wf.sizeMult || 1;
+    const range = sk.range * sizeM + 30;
+    let best = null, bestD = Infinity, kind = null;
+    const near = (x, y, angleTol) => {
+      const d = Math.hypot(x - f.wx, y - f.wy);
+      if (d > range || d < 12) return false;
+      const a = Math.atan2(y - f.wy, x - f.wx);
+      return Math.abs(angDiff(a, f.aim)) <= angleTol;
+    };
+    world.fighters.forEach((o) => {
+      if (o.id === f.id || o.respawnT > 0) return;
+      if (!near(o.wx, o.wy, 0.42)) return;
+      const d = Math.hypot(o.wx - f.wx, o.wy - f.wy);
+      if (d < bestD) { bestD = d; best = o; kind = 'fighter'; }
+    });
+    if (!best) {
+      world.props.forEach((p) => {
+        if (!near(p.wx, p.wy, 0.34)) return;
+        const d = Math.hypot(p.wx - f.wx, p.wy - f.wy);
+        if (d < bestD) { bestD = d; best = p; kind = 'prop'; }
+      });
+    }
+    if (!best) {
+      (world.platforms || []).forEach((p) => {
+        if (!near(p.wx, p.wy, 0.5)) return;
+        const d = Math.hypot(p.wx - f.wx, p.wy - f.wy);
+        if (d < bestD) { bestD = d; best = p; kind = 'terrain'; }
+      });
+    }
+    if (!best) {
+      /* rim wall anchor so the hook is never a dead cast */
+      const ax = f.wx + Math.cos(f.aim) * range * 0.9;
+      const ay = f.wy + Math.sin(f.aim) * range * 0.9;
+      const hw = Math.round(520 * GAME.mapScale), hh = Math.round(360 * GAME.mapScale);
+      const cx = clamp(ax, -hw + 8, hw - 8), cy = clamp(ay, -hh + 8, hh - 8);
+      if (Math.hypot(cx - f.wx, cy - f.wy) > 60) { best = { wx: cx, wy: cy, z: 34, kind: 'wall' }; kind = 'wall'; bestD = Math.hypot(cx - f.wx, cy - f.wy); }
+    }
+
+    f.attackT = 0.24; f.castFlash = 0.16;
+    f.squashX = 1.16; f.squashY = 0.88;
+    try { AFX.audio.ratchet(clamp((f.wx - GAME.cam.x) / 760, -1, 1)); } catch (e) {}
+
+    if (!best) {
+      /* whiff: short cable snap */
+      const wx = f.wx + Math.cos(f.aim) * 120, wy = f.wy + Math.sin(f.aim) * 120;
+      try { sparks(world, wx, wy, f.wz + 14, '#94a3b8', 6, 160, f.aim, 1.2); } catch (e) {}
+      return true;
+    }
+
+    if (kind === 'fighter') {
+      const o = best;
+      const a = Math.atan2(f.wy - o.wy, f.wx - o.wx);
+      const heavy = o.radius >= 20;
+      o.vx += Math.cos(a) * (heavy ? 520 : 760);
+      o.vy += Math.sin(a) * (heavy ? 520 : 760);
+      o.vz = Math.max(o.vz, 170);
+      o.kbT = Math.max(o.kbT, 0.2);
+      try {
+        damage(world, o, f, sk.dmg * (wf.powerMult || 1), Math.cos(a) * 300, Math.sin(a) * 300, 160, wf.impactId || 'none');
+        floatText(world, o.wx, o.wy, o.wz + 18, '🪝 HOOKED', '#cbd5e1', 12);
+        for (let i = 1; i <= 9; i++) {
+          const t = i / 9;
+          world.particles.push({
+            wx: f.wx + (o.wx - f.wx) * t, wy: f.wy + (o.wy - f.wy) * t, wz: f.wz + 14,
+            vx: 0, vy: 0, vz: 0, size: 3, color: i % 2 ? '#cbd5e1' : '#64748b',
+            life: 0.18, max: 0.18, grav: 0, glow: true
+          });
+        }
+        AFX.on.postDamage.length; /* style hooks already fired through damage */
+      } catch (e) {}
+      return true;
+    }
+
+    if (kind === 'prop') {
+      const p = best;
+      const mass = p.w * p.h * Math.max(10, p.z);
+      if (mass < 46000) {
+        /* light prop: rip it toward you and shatter it in your hands */
+        p.__pull = { t: 0.26, wx: f.wx, wy: f.wy };
+        try { floatText(world, p.wx, p.wy, p.z, 'YANK', '#cbd5e1', 12); } catch (e) {}
+      } else {
+        f.grap = { x: p.wx, y: p.wy, z: Math.max(30, p.z), t: 1.5, kind: 'prop' };
+      }
+      return true;
+    }
+
+    /* terrain / wall: reel yourself in */
+    f.grap = { x: best.wx, y: best.wy, z: Math.max(30, best.z || 34), t: 1.6, kind: kind };
+    return true;
+  };
+
+  /* keep latched fighters and yanked props moving */
+  AFX.on.postStep.push(function AFX_grapTick(world, dt) {
+    if (!world || world.isPreview) return;
+    if (GAME.netRole === 'client') return;
+    world.fighters.forEach((f) => {
+      if (f.respawnT > 0) { f.grap = null; return; }
+      /* dash / slide state machine */
+      const mv = state(f);
+
+      if (f.grap) {
+        const g = f.grap;
+        g.t -= dt;
+        const dx = g.x - f.wx, dy = g.y - f.wy;
+        const d = Math.hypot(dx, dy);
+        if (mv.dashT > 0) { AFX.releaseGrap(f, true); }
+        else if (d < 52 || g.t <= 0) { AFX.releaseGrap(f, true); }
+        else {
+          f.vx = (dx / d) * 1180;
+          f.vy = (dy / d) * 1180;
+          f.kbT = Math.max(f.kbT, 0.2);
+          if (f.wz < g.z) { f.wz += 460 * dt; f.vz = 0; }
+          if (Math.random() < 0.55) {
+            try {
+              world.particles.push({
+                wx: f.wx - (dx / d) * 18, wy: f.wy - (dy / d) * 18, wz: f.wz + 12,
+                vx: 0, vy: 0, vz: 0, size: 2.4, color: '#a5f3fc',
+                life: 0.2, max: 0.2, grav: 0, glow: true
+              });
+            } catch (e) {}
+          }
+        }
+      }
+
+      /* dash sustains its own velocity for the burst window */
+      if (mv.dashT > 0) {
+        mv.dashT -= dt;
+        f.vx = Math.cos(mv.dashDir) * 1080;
+        f.vy = Math.sin(mv.dashDir) * 1080;
+        f.kbT = Math.max(f.kbT, 0.12);
+        mv.ghostT -= dt;
+        if (mv.ghostT <= 0) {
+          mv.ghostT = 0.028;
+          f.trail.push({ x: f.wx, y: f.wy, life: 0.3 });
+        }
+      }
+
+      /* slide: low profile, momentum building, no artificial cap */
+      if (mv.slideT > 0) {
+        mv.slideT -= dt;
+        const sp = Math.hypot(f.vx, f.vy);
+        const dir = sp > 40 ? Math.atan2(f.vy, f.vx) : (f.facing > 0 ? 0 : Math.PI);
+        const next = Math.min(940, Math.max(360, sp * 1.035));
+        f.vx = Math.cos(dir) * next;
+        f.vy = Math.sin(dir) * next;
+        f.kbT = Math.max(f.kbT, 0.1);
+        f.squashX = 1.18; f.squashY = 0.8;
+        if (Math.random() < 0.4) {
+          try { sparks(world, f.wx, f.wy, 3, '#a5f3fc', 1, 90, dir + Math.PI, 0.9); } catch (e) {}
+        }
+      }
+    });
+
+    /* props being yanked in */
+    world.props.forEach((p) => {
+      if (!p.__pull) return;
+      p.__pull.t -= dt;
+      const dx = p.__pull.wx - p.wx, dy = p.__pull.wy - p.wy;
+      const d = Math.hypot(dx, dy) || 1;
+      const step = Math.min(d, 1400 * dt);
+      p.wx += (dx / d) * step;
+      p.wy += (dy / d) * step;
+      p.flash = 0.08;
+      if (d < 34 || p.__pull.t <= 0) {
+        const owner = world.fighters.find((x) => x.id === p.__pull.ownerId) || getHuman();
+        try { damageProp(world, p, 999, owner); AFX.audio.boom(0.9, 0); } catch (e) {}
+        p.__pull = null;
+      }
+    });
+  });
+
+  /* chain rendering */
+  AFX.on.postRender.push(function AFX_grapDraw(ctx, world, cam, W, H) {
+    if (!world) return;
+    world.fighters.forEach((f) => {
+      if (!f.grap) return;
+      const o = w2s(f.wx, f.wy, f.wz + 14, cam, W, H);
+      const p = w2s(f.grap.x, f.grap.y, f.grap.z, cam, W, H);
+      const links = 12;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(165,243,252,.35)';
+      ctx.lineWidth = Math.max(1, 1.6 * cam.zoom);
+      ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      for (let i = 1; i <= links; i++) {
+        const t = i / links;
+        const lx = o.x + (p.x - o.x) * t;
+        const ly = o.y + (p.y - o.y) * t + Math.sin(t * Math.PI * 2 + world.time * 8) * 3 * cam.zoom;
+        ctx.fillStyle = i % 2 ? '#cbd5e1' : '#64748b';
+        ctx.fillRect(lx - 2 * cam.zoom, ly - 2 * cam.zoom, 4 * cam.zoom, 4 * cam.zoom);
+      }
+      /* claw head */
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = Math.max(1.2, 1.8 * cam.zoom);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6 * cam.zoom, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    });
+  });
+
+  /* ------------------------------------------------------------------ *
+   *  LOCAL SHARED-KEYBOARD 2P
+   * ------------------------------------------------------------------ */
+  AFX.p2 = { on: false, fighter: null, prev: { jump: false, cast: false, dash: false } };
+
+  AFX.startLocal2 = () => {
+    try {
+      if (GAME.state !== 'playing' || !getHuman()) startMatch();
+      const h1 = getHuman();
+      if (!h1) return;
+      const hw = Math.round(520 * GAME.mapScale);
+      const f2 = spawnFighter({
+        id: 'hero2', name: 'P2', charId: CHARS[(CHARS.findIndex((c) => c.id === GAME.charId) + 3) % CHARS.length].id,
+        isHuman: true, x: hw * 0.3, y: 0
+      });
+      f2.local2 = true;
+      f2.invulnT = 1.4;
+      f2.lookSig = { base: f2.charId, p: '#fb7185', s: '#9f1239', a: '#fde68a', v: '#fecdd3', aura: 'ember' };
+      f2.charId = AFX.registerLook(f2.lookSig.base, f2.lookSig);
+      f2.def = charById(f2.charId) || f2.def;
+      WORLD.fighters.push(f2);
+      AFX.p2.on = true;
+      AFX.p2.fighter = f2;
+      GAME.local2 = true;
+      GAME.followCam = false;
+      const hud = document.getElementById('afP2Hud');
+      if (hud) hud.classList.add('on');
+      toast('⌨ Local 2P — P1: WASD / F / G · P2: ARROWS / K / L', 'cyan');
+      renderSlots();
+      renderStandings();
+    } catch (e) { AFX.warn('local2', e); }
+  };
+
+  AFX.p2Input = (dt) => {
+    const f = AFX.p2.fighter;
+    if (!f || !AFX.p2.on) return;
+    if (WORLD.fighters.indexOf(f) < 0) { AFX.p2.on = false; return; }
+    const k = GAME.keys || {};
+    let x = 0, y = 0;
+    if (k.ArrowLeft) x -= 1;
+    if (k.ArrowRight) x += 1;
+    if (k.ArrowUp) y -= 1;
+    if (k.ArrowDown) y += 1;
+    f.inX = x; f.inY = y;
+
+    /* 8-way aim + soft target assist */
+    let aim = f.aim;
+    if (x || y) aim = Math.atan2(y, x);
+    let near = null, bestD = 460;
+    WORLD.fighters.forEach((o) => {
+      if (o.id === f.id || o.respawnT > 0) return;
+      const d = Math.hypot(o.wx - f.wx, o.wy - f.wy);
+      if (d < bestD) { bestD = d; near = o; }
+    });
+    if (near) {
+      const ta = Math.atan2(near.wy - f.wy, near.wx - f.wx);
+      if (Math.abs(angDiff(ta, aim)) < 0.55 || !(x || y)) aim = ta;
+    }
+    f.inAim = aim;
+    f.aim = aim;
+    if (Math.abs(Math.cos(aim)) > 0.2) f.facing = Math.cos(aim) >= 0 ? 1 : -1;
+
+    const jumpHeld = !!(k.Numpad0 || k.ShiftRight || k.NumpadEnter);
+    const castHeld = !!(k.Enter || k.KeyK);
+    const dashHeld = !!(k.KeyL || k.Slash);
+    if (jumpHeld && !AFX.p2.prev.jump) {
+      if (!AFX.tryJump(f)) f.jumpBuf = 0.14;
+    }
+    if (dashHeld && !AFX.p2.prev.dash) AFX.tryDash(f, f.aim);
+    f.inCast = castHeld;
+    AFX.p2.prev.jump = jumpHeld;
+    AFX.p2.prev.cast = castHeld;
+    AFX.p2.prev.dash = dashHeld;
+    if (k.KeyO) { f.active = (f.active + 1) % Math.max(1, f.unlocked); }
+    if (k.KeyP) { f.active = (f.active - 1 + Math.max(1, f.unlocked)) % Math.max(1, f.unlocked); }
+  };
+
+  AFX.on.preStep.push(function AFX_p2Tick(world, dt) {
+    if (!world || world.isPreview) return;
+    if (AFX.p2.on && GAME.netRole !== 'client') AFX.p2Input(dt);
+  });
+
+  /* ------------------------------------------------------------------ *
+   *  CAMERA — auto-framing for local 2P
+   * ------------------------------------------------------------------ */
+  AFX.frameCamera = (cam, W, H) => {
+    if (!AFX.p2.on || GAME.state !== 'playing') return;
+    const a = getHuman(), b = AFX.p2.fighter;
+    if (!a || !b) return;
+    const midX = (a.wx + b.wx) * 0.5;
+    const midY = (a.wy + b.wy) * 0.5;
+    const spanX = Math.abs(a.wx - b.wx) + 260;
+    const spanY = Math.abs(a.wy - b.wy) + 220;
+    const zx = W / (spanX * 1.25);
+    const zy = H / (spanY * ISO * 1.5);
+    const z = clamp(Math.min(zx, zy), 0.55, 1.5);
+    cam.x += (midX - cam.x) * 0.12;
+    cam.y += (midY - cam.y) * 0.12;
+    cam.zoom += (z - cam.zoom) * 0.08;
+  };
+})();
+
+/* ============================================================================
+   AFX 2.6 — combat feel: velocity-scaled damage, impact recoil, style chain
+   ========================================================================== */
+(function AFX_COMBAT() {
+  'use strict';
+  const AFX = window.__AFX;
+  if (!AFX) return;
+
+  /* ------------------------------------------------------------------ *
+   *  VELOCITY DAMAGE
+   * ------------------------------------------------------------------ */
+  AFX.velMul = (world, b) => {
+    if (!b) return 1;
+    const live = Math.hypot(b.vx || 0, b.vy || 0);
+    const base = b.baseSpeed || b.__base || Math.max(120, live);
+    if (!isFinite(live) || !base) return 1;
+    const ratio = clamp(live / base, 0.55, 2.8);
+    const mul = 1 + (ratio - 1) * 0.9;
+    if (ratio > 1.42) {
+      b.hot = Math.min(2, ratio);
+      if (!b.__critShown) {
+        b.__critShown = 0.35;
+        try {
+          floatText(world, b.wx, b.wy, b.wz + 22, '×' + ratio.toFixed(1) + ' VELOCITY', '#fde68a', 11);
+        } catch (e) {}
+      }
+    }
+    return clamp(mul, 0.55, 2.6);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  STYLE / MOVE-CHAIN
+   * ------------------------------------------------------------------ */
+  const RANKS = [
+    { id: 'D', at: 0 }, { id: 'C', at: 110 }, { id: 'B', at: 250 },
+    { id: 'A', at: 430 }, { id: 'S', at: 660 }, { id: 'SS', at: 940 }, { id: 'SSS', at: 1280 }
+  ];
+  AFX.RANKS = RANKS;
+  AFX.style = { pts: 0, t: 0, rank: 0, mult: 1, callout: '', calloutT: 0, best: 0 };
+
+  AFX.callout = (label, color) => {
+    AFX.style.callout = label;
+    AFX.style.calloutT = 1.1;
+    const h = getHuman();
+    if (h) {
+      try { floatText(WORLD, h.wx, h.wy, h.wz + 34, label, color || '#fde68a', 12); } catch (e) {}
+    }
+    try { AFX.audio.zap(0); } catch (e) {}
+  };
+
+  AFX.addStyle = (n) => {
+    const s = AFX.style;
+    s.pts = clamp(s.pts + n, 0, 2400);
+    s.t = 2.6;
+    s.best = Math.max(s.best, s.pts);
+    let idx = 0;
+    for (let i = 0; i < RANKS.length; i++) if (s.pts >= RANKS[i].at) idx = i;
+    if (idx > s.rank) {
+      s.rank = idx;
+      if (idx >= 2) {
+        try { SFX.tone(520 + idx * 110, 0.1, 'square', 0.07, 900); } catch (e) {}
+      }
+    }
+    s.mult = 1 + idx * 0.032;
+  };
+
+  AFX.on.postStep.push(function AFX_styleTick(world, dt) {
+    if (!world || world.isPreview) return;
+    const s = AFX.style;
+    if (s.t > 0) { s.t -= dt; } else if (s.pts > 0) {
+      s.pts = Math.max(0, s.pts - 46 * dt);
+      let idx = 0;
+      for (let i = 0; i < RANKS.length; i++) if (s.pts >= RANKS[i].at) idx = i;
+      s.rank = idx;
+      s.mult = 1 + idx * 0.032;
+    }
+    if (s.calloutT > 0) s.calloutT -= dt; else s.callout = '';
+    world.bullets.forEach((b) => { if (b.__critShown > 0) b.__critShown -= dt; });
+  });
+
+  /* classify the hit for callouts + style payout */
+  AFX.tagHit = (world, target, attacker, raw) => {
+    const out = { mul: 1, tags: [], pts: 0 };
+    if (!attacker || !target || attacker.id === target.id) return out;
+    const mv = attacker.__mv || {};
+    const airborne = (target.wz || 0) > 34;
+    const frozen = (target.chillT || 0) > 0 || (target.stasisT || 0) > 0;
+    const momentum = (mv.dashT || 0) > 0 || (mv.slideT || 0) > 0 || !!attacker.grap;
+    const guarded = (target.shieldT || 0) > 0 || (target.mirrorT || 0) > 0;
+
+    if (airborne) { out.tags.push(['AIRSHOT', '#a5f3fc']); out.pts += 34; }
+    if (frozen && raw >= 24) { out.tags.push(['SHATTER', '#bae6fd']); out.pts += 40; out.mul += 0.22; }
+    if (momentum) { out.tags.push(['MOMENTUM', '#fde68a']); out.pts += 30; out.mul += 0.14; }
+    if (guarded) { out.tags.push(['PARRY', '#e879f9']); out.pts += 20; }
+    if (raw >= 40) { out.tags.push(['HEAVY', '#fca5a5']); out.pts += 16; }
+    const combo = (world.combo || 0);
+    if (combo >= 5) out.pts += Math.min(40, combo * 2);
+    return out;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  HIT FEEL — freeze frames, directional recoil, sparks
+   * ------------------------------------------------------------------ */
+  const _damage = damage;
+  damage = function AFX_damage(world, target, attacker, raw, kx, ky, kz, impactId) {
+    let out = raw;
+    try {
+      if (!world || !target) return _damage(world, target, attacker, raw, kx, ky, kz, impactId);
+      const tag = AFX.tagHit(world, target, attacker, raw);
+      if (tag.tags.length) {
+        const hero = getHuman();
+        const byHero = hero && attacker && (attacker.id === hero.id || (attacker.local2 && AFX.p2.on));
+        if (byHero) {
+          tag.tags.forEach(([label, color]) => {
+            AFX.callout(label, color);
+            AFX.addStyle(tag.pts);
+            if (label === 'SHATTER' || label === 'MOMENTUM') {
+              try { AFX.audio.zap(0); } catch (e) {}
+            }
+          });
+          /* style rank pays out as damage */
+          out = raw * tag.mul * AFX.style.mult;
+          /* and refunds part of the cooldown on the higher ranks */
+          if (AFX.style.rank >= 4) {
+            attacker.cds = attacker.cds.map((c) => Math.max(0, (c || 0) - 0.22));
+          }
+        }
+      }
+      /* directional camera recoil + heavier freeze frames */
+      if (world === WORLD && (target.isHuman || target.local2)) {
+        const dir = Math.abs(kx) > Math.abs(ky) ? Math.sign(kx) : Math.sign(ky);
+        GAME.camKick = {
+          x: clamp(-kx * 0.012, -16, 16),
+          y: clamp(-ky * 0.008, -12, 12),
+          t: 0.18, dir: dir || 1
+        };
+      }
+      if (raw >= 18) {
+        const heavy = raw >= 38;
+        GAME.freeze = Math.max(GAME.freeze, heavy ? 0.085 : 0.045);
+        try {
+          AFX.audio.thud(heavy ? 1.5 : 0.85, clamp((target.wx - GAME.cam.x) / 760, -1, 1));
+          if (heavy) AFX.audio.boom(1.1, clamp((target.wx - GAME.cam.x) / 760, -1, 1));
+          sparks(world, target.wx, target.wy, (target.wz || 0) + 14, '#ffffff',
+            heavy ? 14 : 8, heavy ? 480 : 320, Math.atan2(ky, kx), 2.4);
+        } catch (e) {}
+      }
+    } catch (e) { AFX.warn('damage', e); out = raw; }
+    return _damage(world, target, attacker, out, kx, ky, kz, impactId);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  CAST — projectile inheritance, duration scaling, muzzle shockwave
+   * ------------------------------------------------------------------ */
+  const _cast = cast;
+  cast = function AFX_cast(world, f, slotIdx) {
+    try {
+      if (world && f && f.__mv && f.__mv.dashT > 0 && GAME.state === 'playing') {
+        AFX.addStyle(12);
+      }
+      const wf = (f && f.slots && f.slots[slotIdx]) || null;
+      const sk = wf ? skillById(wf.skillId) : null;
+      if (sk && sk.kind === 'grapple' && GAME.netRole !== 'client' && !world.isPreview) {
+        if (f.respawnT > 0 || f.stasisT > 0 || f.silenceT > 0) return false;
+        if (f.cds[slotIdx] > 0) return false;
+        f.cds[slotIdx] = Math.max(0.16, sk.cd * f.cdMult);
+        const ok = AFX.grappleCast(world, f, sk, wf);
+        AFX.emit('postCast', [world, f, slotIdx, sk, wf, ok]);
+        return ok;
+      }
+      const beforeB = world && world.bullets ? world.bullets.length : 0;
+      const beforeZ = world && world.zones ? world.zones.length : 0;
+      const r = _cast(world, f, slotIdx);
+      if (r && world && f && sk) {
+        const durM = clamp(wf.durationMult || 1, 0.35, 3);
+        const spdM = clamp(wf.speedMult || 1, 0.4, 3);
+        for (let i = beforeB; i < world.bullets.length; i++) {
+          const b = world.bullets[i];
+          if (!b) continue;
+          /* faster baseline + caster momentum inheritance */
+          const boost = 1.24;
+          b.vx *= boost; b.vy *= boost;
+          if (f.__mv && (f.__mv.dashT > 0 || f.__mv.slideT > 0)) {
+            b.vx += (f.vx || 0) * 0.34;
+            b.vy += (f.vy || 0) * 0.34;
+          } else {
+            b.vx += (f.vx || 0) * 0.16;
+            b.vy += (f.vy || 0) * 0.16;
+          }
+          b.baseSpeed = Math.max(140, sk.speed * spdM);
+          b.__base = b.baseSpeed;
+          b.life = Math.max(0.18, (b.life || 0.5) * durM * 0.86);
+          b.speedMult = spdM;
+        }
+        for (let i = beforeZ; i < world.zones.length; i++) {
+          const z = world.zones[i];
+          if (!z || z.local) continue;
+          z.life = (z.life || 0.3) * durM;
+          z.max = (z.max || 0.3) * durM;
+        }
+        /* buff / status timers scale with duration too */
+        const dur2 = durM;
+        ['overdriveT', 'shieldT', 'mirrorT', 'regenT', 'invulnT'].forEach((k) => {
+          if (f[k] > 0) f[k] *= dur2;
+        });
+        if (sk.kind === 'proj' || sk.kind === 'volley' || sk.kind === 'nova_shot') {
+          const a = f.aim;
+          const mx = f.wx + Math.cos(a) * 28, my = f.wy + Math.sin(a) * 28;
+          try {
+            ring(world, mx, my, sk.color, 24 + sk.radius * 0.5, 0.16, f.wz + 14);
+            AFX.audio.shot(sk.speed * spdM, sk.color, clamp((f.wx - GAME.cam.x) / 760, -1, 1));
+          } catch (e) {}
+        }
+      }
+      AFX.emit('postCast', [world, f, slotIdx, sk, wf, r]);
+      return r;
+    } catch (e) {
+      AFX.warn('cast', e);
+      try { return _cast(world, f, slotIdx); } catch (err) { return false; }
+    }
+  };
+
+  /* agility bump: fighters and projectiles both get snappier */
+  const _recalc = recalcStats;
+  recalcStats = function AFX_recalc(f) {
+    _recalc(f);
+    try {
+      f.moveSpeed *= 1.15;
+      f.jumpPower *= 1.05;
+    } catch (e) {}
+    return f;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  ARENA HAZARD SOUND HOOKS (explosions get the sub-bass drop)
+   * ------------------------------------------------------------------ */
+  AFX.on.postStep.push(function AFX_boomSounds(world, dt) {
+    if (!world || world.isPreview) return;
+    world.zones.forEach((z) => {
+      if (z.kind !== 'explosion' || z.__afSnd) return;
+      z.__afSnd = true;
+      try {
+        AFX.audio.boom(clamp((z.dmg || 20) / 26, 0.5, 2.2), clamp((z.wx - GAME.cam.x) / 760, -1, 1));
+        GAME.camKick = { x: 0, y: 6, t: 0.16 };
+      } catch (e) {}
+    });
+  });
+})();
+
+/* ============================================================================
+   AFX 2.6 — netcode: heartbeat, delta snapshots, cast-pulse prediction,
+   reconnect grace, custom-colour sync.
+   ========================================================================== */
+(function AFX_NET() {
+  'use strict';
+  const AFX = window.__AFX;
+  if (!AFX) return;
+
+  const net = {
+    hbT: 0, lastRecv: 0, rtt: 0, deltaSent: 0, fullSent: 0,
+    reconnect: false, linkBad: false
+  };
+  AFX.net = net;
+
+  AFX.netWarn = (msg, bad) => {
+    const el = document.getElementById('afNetHud');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('on');
+    el.classList.toggle('bad', !!bad);
+    clearTimeout(el.__hide);
+    el.__hide = setTimeout(() => {
+      if (!net.reconnect) el.classList.remove('on');
+    }, bad ? 4200 : 2200);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  HEARTBEAT + CLIENT-SIDE SHOT PREDICTION
+   * ------------------------------------------------------------------ */
+  AFX.predictShot = (h, wf) => {
+    try {
+      const sk = skillById(wf.skillId);
+      if (!sk || sk.kind === 'grapple' || !sk.speed) return;
+      const a = h.aim;
+      const bolt = {
+        ownerId: h.id, kind: sk.kind, style: sk.id, impactId: wf.impactId,
+        wx: h.wx + Math.cos(a) * 22, wy: h.wy + Math.sin(a) * 22, wz: h.wz + 13,
+        px: h.wx, py: h.wy,
+        vx: Math.cos(a) * sk.speed * 1.24 * (wf.speedMult || 1),
+        vy: Math.sin(a) * sk.speed * 1.24 * (wf.speedMult || 1),
+        radius: sk.radius * (wf.sizeMult || 1), dmg: 0, kb: 0, color: sk.color,
+        spin: Math.random() * TAU, life: 0.42, max: 1, pred: true, ghost: true,
+        returning: false, bounces: 0, pierce: true, hazard: false, trail: [], warpCd: 0
+      };
+      WORLD.bullets.push(bolt);
+    } catch (e) { AFX.warn('predict', e); }
+  };
+
+  const _clientTick = netClientTick;
+  netClientTick = function AFX_clientTick(dt) {
+    try {
+      if (GAME.netRole !== 'client' || !netOnline()) return;
+      const h = getHuman();
+      if (!h) return;
+
+      /* 1 Hz heartbeat keeps NAT bindings warm and measures true RTT */
+      net.hbT -= dt;
+      if (net.hbT <= 0) {
+        net.hbT = 1;
+        netSend({ t: 'hb', ts: performance.now() });
+      }
+      /* edge-triggered cast prediction: a single fast click still shows a shot */
+      if (NET.castPulse) {
+        const wf = h.slots[h.active];
+        if (wf) AFX.predictShot(h, wf);
+        net.lastRecv = performance.now();
+      }
+      /* also predict on held fire so sustained shooting feels local */
+      if ((GAME.mouse.down || GAME.touch.casting) && h.cds[h.active] <= 0.02) {
+        const wf = h.slots[h.active];
+        if (wf && Math.random() < 0.6) AFX.predictShot(h, wf);
+      }
+    } catch (e) { AFX.warn('clientTick', e); }
+    return _clientTick(dt);
+  };
+
+  /* predicted tracers live outside the host snapshot, so age them out here */
+  AFX.on.postStep.push(function AFX_ghostTick(world, dt) {
+    if (!world || world.isPreview || GAME.netRole !== 'client') return;
+    for (let i = world.bullets.length - 1; i >= 0; i--) {
+      const b = world.bullets[i];
+      if (!b.pred) continue;
+      b.life -= dt;
+      if (b.life <= 0) world.bullets.splice(i, 1);
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   *  DELTA SNAPSHOTS — send only fighters that actually changed
+   * ------------------------------------------------------------------ */
+  let lastF = {};
+  const _build = buildSnapshot;
+  buildSnapshot = function AFX_buildSnapshot() {
+    const full = _build();
+    try {
+      const out = [];
+      const seen = {};
+      (full.f || []).forEach((row) => {
+        const id = row[0];
+        seen[id] = 1;
+        const sig = JSON.stringify(row.slice(1));
+        if (lastF[id] !== sig) { out.push(row); lastF[id] = sig; }
+      });
+      Object.keys(lastF).forEach((id) => { if (!seen[id]) delete lastF[id]; });
+      full.f = out;
+      full.d = 1;
+      net.deltaSent++;
+      if (net.deltaSent % 40 === 0) net.fullSent++;
+    } catch (e) { AFX.warn('snapshot delta', e); }
+    return full;
+  };
+
+  let lastById = {};
+  const _apply = applySnapshot;
+  applySnapshot = function AFX_applySnapshot(s) {
+    let snap = s;
+    try {
+      if (s && s.d) {
+        (s.f || []).forEach((row) => { if (row && row[0] != null) lastById[row[0]] = row; });
+        const merged = [];
+        Object.keys(lastById).forEach((id) => merged.push(lastById[id]));
+        snap = Object.assign({}, s, { f: merged, d: 0 });
+      } else if (s && s.f) {
+        (s.f || []).forEach((row) => { if (row && row[0] != null) lastById[row[0]] = row; });
+      }
+      net.lastRecv = performance.now();
+    } catch (e) { AFX.warn('snapshot merge', e); }
+
+    const preds = (WORLD.bullets || []).filter((b) => b.pred);
+    const r = _apply(snap);
+    try {
+      if (preds.length) {
+        WORLD.bullets = (WORLD.bullets || []).concat(preds.filter((p) => p.life > 0));
+        if (WORLD.bullets.length > 90) WORLD.bullets.splice(0, WORLD.bullets.length - 90);
+      }
+    } catch (e) {}
+    return r;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  MESSAGES — heartbeat reply + colour handshake
+   * ------------------------------------------------------------------ */
+  const _handle = netHandle;
+  netHandle = function AFX_handle(m, peer) {
+    try {
+      if (m && m.t === 'hb') {
+        if (peer) peer.alive = performance.now();
+        net.lastRecv = performance.now();
+        if (NET.side === 'host') netSendTo(peer, { t: 'hb', ts: m.ts });
+        else if (m.ts) {
+          net.rtt = Math.max(0, Math.round(performance.now() - m.ts));
+          const pe = $('netPing');
+          if (pe) pe.textContent = net.rtt + ' ms';
+          if (net.reconnect) {
+            net.reconnect = false;
+            AFX.netWarn('LINK RESTORED');
+          }
+        }
+        return;
+      }
+      if (m && m.t === 'look' && peer) { peer.look = m.look; return; }
+      if (m && m.t === 'hello') {
+        if (peer && m.look) peer.look = m.look;
+        /* a newcomer needs one full snapshot before deltas make sense */
+        lastF = {};
+      }
+    } catch (e) { AFX.warn('handle', e); }
+    return _handle(m, peer);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  RECONNECT GRACE — never kick on a transient blip
+   * ------------------------------------------------------------------ */
+  const _connState = netConnState;
+  netConnState = function AFX_connState(pc) {
+    try {
+      const st = pc.connectionState;
+      if (st === 'connected') {
+        if (pc.__afGrace) { pc.__afGrace = 0; net.reconnect = false; AFX.netWarn('LINK RESTORED'); }
+        return _connState(pc);
+      }
+      if (st === 'disconnected' || st === 'failed') {
+        const now = performance.now();
+        if (!pc.__afGrace) pc.__afGrace = now;
+        const elapsed = now - pc.__afGrace;
+        if (elapsed < 14000) {
+          net.reconnect = true;
+          netStatus('RECONNECTING', false);
+          AFX.netWarn('RECONNECTING · ' + Math.max(0, 14 - Math.round(elapsed / 1000)) + 's', true);
+          clearTimeout(pc.__dropTimer);
+          if (!pc.__afRestart) {
+            pc.__afRestart = 1;
+            try { if (pc.restartIce) pc.restartIce(); } catch (e) {}
+          }
+          return;
+        }
+      }
+    } catch (e) { AFX.warn('connState', e); }
+    return _connState(pc);
+  };
+
+  const _drop = netDropPeer;
+  netDropPeer = function AFX_drop(peer) {
+    try {
+      net.reconnect = false;
+      net.lastRecv = 0;
+      lastF = {}; lastById = {};
+      if (GAME.netRole === 'client') {
+        toast('Host link lost — the arena is frozen. Re-invite to continue.', 'rose');
+      }
+    } catch (e) {}
+    return _drop(peer);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  COLOUR SYNC — ship the customiser palette with the roster
+   * ------------------------------------------------------------------ */
+  const _startNet = startNetMatch;
+  startNetMatch = function AFX_startNet(side, cfg) {
+    const r = _startNet(side, cfg);
+    try {
+      (cfg && cfg.roster || []).forEach((entry) => {
+        const f = WORLD.fighters.find((x) => x.id === entry.id);
+        if (!f) return;
+        if (entry.look) {
+          f.lookSig = Object.assign({ base: entry.charId || f.charId }, entry.look);
+          f.charId = AFX.registerLook(f.lookSig.base, f.lookSig);
+          f.def = charById(f.charId) || f.def;
+          f.auraId = f.lookSig.aura || 'none';
+        } else if (entry.id === NET.myId) {
+          AFX.syncFighterLook(f);
+        }
+      });
+    } catch (e) { AFX.warn('net look sync', e); }
+    return r;
+  };
+
+  /* the host's own hero keeps whatever palette the customiser holds */
+  AFX.on.postStep.push(function AFX_heroLook(world, dt) {
+    if (!world || world.isPreview) return;
+    const h = getHuman();
+    if (!h) return;
+    const want = AFX.heroSpriteId();
+    if (h.charId !== want) {
+      h.charId = want;
+      h.def = charById(want) || h.def;
+    }
+  });
+})();
+
+/* ============================================================================
+   AFX 2.6 — UI: customiser, kinetic HUD extras, dual-stick touch, overclock
+   ========================================================================== */
+(function AFX_UI() {
+  'use strict';
+  const AFX = window.__AFX;
+  if (!AFX) return;
+
+  const el = (tag, cls, html) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  PIXEL ICONOGRAPHY (replaces the raw system emoji on chrome buttons)
+   * ------------------------------------------------------------------ */
+  const ICONS = {
+    sword: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#a5f3fc" d="M3 0h2v1H3zM2 1h2v1H2zM1 2h2v1H1zM0 3h2v1H0zM1 4h2v1H1zM2 5h2v1H2zM3 6h2v1H3z"/><path fill="#fde68a" d="M5 3h1v1H5zM4 4h1v1H4z"/></svg>',
+    trophy: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#fbbf24" d="M1 0h6v1H1zM1 1h6v2H1zM2 3h4v1H2zM3 4h2v2H3zM2 6h4v1H2zM1 7h6v1H1z"/><path fill="#fde68a" d="M0 1h1v2H0zM7 1h1v2H7z"/></svg>',
+    play: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#03121a" d="M1 0h2v8H1zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z"/></svg>',
+    save: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#03121a" d="M1 0h1v2h4V0h1v8H1z"/><path fill="#a5f3fc" d="M3 0h2v2H3zM2 5h4v3H2z"/></svg>',
+    globe: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#fde68a" d="M2 0h4v1H2zM1 1h6v1H1zM0 2h8v4H0zM1 6h6v1H1zM2 7h4v1H2z"/><path fill="#1a1204" d="M3 2h2v4H3zM1 3h6v2H1z"/></svg>',
+    link: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#a5f3fc" d="M0 2h4v1H0zM0 5h4v1H0zM0 3h1v2H0zM3 3h1v2H3zM4 1h4v1H4zM4 6h4v1H4zM4 2h1v4H4zM7 2h1v4H7z"/></svg>',
+    star: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#fde68a" d="M3 0h2v2H3zM2 2h4v1H2zM0 3h8v1H0zM1 4h6v1H1zM2 5h1v1H2zM5 5h1v1H5zM1 6h2v2H1zM5 6h2v2H5z"/></svg>',
+    keyboard: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#a5f3fc" d="M0 1h8v6H0z"/><path fill="#08111f" d="M1 2h1v1H1zM3 2h1v1H3zM5 2h1v1H5zM6 2h1v1H6zM1 4h1v1H1zM3 4h1v1H3zM5 4h1v1H5zM6 4h1v1H6zM2 6h4v1H2z"/></svg>',
+    palette: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#fecdd3" d="M2 0h4v1H2zM1 1h6v1H1zM0 2h8v4H0zM1 6h6v1H1zM2 7h3v1H2z"/><path fill="#0f172a" d="M2 2h1v1H2zM5 2h1v1H5zM3 5h2v1H3z"/></svg>',
+    gear: '<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#a8bcd8" d="M3 0h2v2H3zM3 6h2v2H3zM0 3h2v2H0zM6 3h2v2H6zM1 1h1v1H1zM6 1h1v1H6zM1 6h1v1H1zM6 6h1v1H6zM2 2h4v4H2z"/><path fill="#08111f" d="M3 3h2v2H3z"/></svg>'
+  };
+  const iconize = (id, icon, label, kbd) => {
+    const b = document.getElementById(id);
+    if (!b || b.dataset.afIco) return;
+    b.dataset.afIco = '1';
+    b.innerHTML = '<span class="af-ico">' + ICONS[icon] + '</span>' + (label || '') +
+      (kbd ? ' <span class="kbd">' + kbd + '</span>' : '');
+  };
+  AFX.iconizeAll = () => {
+    iconize('btnArmory', 'sword', 'ARMORY', 'B');
+    iconize('btnRank', 'trophy', '', 'TAB');
+    iconize('btnArmoryMenu', 'sword', 'ARMORY');
+    iconize('btnRankMenu', 'trophy', 'RANKINGS');
+    iconize('btnStart', 'play', 'ENTER THE FORGE ARENA');
+    iconize('btnDownload', 'save', 'SAVE .HTML');
+    iconize('btnHost', 'globe', 'HOST MATCH');
+    iconize('btnJoin', 'link', 'JOIN WITH CODE');
+    iconize('modeNormal', 'gear', 'NORMAL');
+    iconize('modeAnything', 'star', 'ANYTHING GOES');
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  FIGHTER CUSTOMISER
+   * ------------------------------------------------------------------ */
+  const lookControls = (compact) => `
+    <div class="af-color"><label>PRIMARY</label>
+      <input type="color" data-look="p" value="${GAME.look.p}">
+      <span class="hex" data-hex="p">${GAME.look.p}</span></div>
+    <div class="af-color"><label>TRIM</label>
+      <input type="color" data-look="s" value="${GAME.look.s}">
+      <span class="hex" data-hex="s">${GAME.look.s}</span></div>
+    <div class="af-color"><label>ACCENT</label>
+      <input type="color" data-look="a" value="${GAME.look.a}">
+      <span class="hex" data-hex="a">${GAME.look.a}</span></div>
+    <div class="af-color"><label>VISOR</label>
+      <input type="color" data-look="v" value="${GAME.look.v}">
+      <span class="hex" data-hex="v">${GAME.look.v}</span></div>
+    <div class="af-swatches" data-swatch-root>
+      ${AFX.PALETTE.map((c) => `<button type="button" data-swatch="${c}" style="--c:${c}" title="${c}"></button>`).join('')}
+    </div>
+    <div class="divider"></div>
+    <div class="row between" style="margin-bottom:4px">
+      <span class="tiny pixel" style="color:#a8bcd8">AURA / TRAIL</span>
+      <span class="tiny muted">${compact ? 'STYLE' : 'TRAIL STYLE'}</span>
+    </div>
+    <div class="af-aura" data-aura-root>
+      ${AFX.AURAS.map((a) => `<button type="button" data-aura="${a.id}" class="${GAME.look.aura === a.id ? 'on' : ''}">${a.name}</button>`).join('')}
+    </div>`;
+
+  const buildLookPreview = (canvas) => {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    let frame = 0;
+    const draw = () => {
+      if (!document.body.contains(canvas)) return;
+      try {
+        const key = AFX.registerLook(GAME.charId, GAME.look);
+        const spr = (SPRITES[key] || SPRITES[GAME.charId])[frame % 4];
+        if (!spr) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#050b14';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const aura = AFX.auraColor(GAME.look.aura);
+        if (aura) {
+          ctx.fillStyle = aura + '33';
+          ctx.beginPath();
+          ctx.arc(canvas.width / 2, canvas.height * 0.62, canvas.width * 0.36, 0, TAU);
+          ctx.fill();
+        }
+        const s = Math.min(canvas.width / 22, canvas.height / 28);
+        ctx.drawImage(spr, (canvas.width - 20 * s) / 2, (canvas.height - 26 * s) / 2, 20 * s, 26 * s);
+        frame++;
+      } catch (e) {}
+    };
+    draw();
+    clearInterval(canvas.__afT);
+    canvas.__afT = setInterval(draw, 380);
+  };
+
+  const bindLook = (root) => {
+    if (!root) return;
+    const apply = () => {
+      AFX.registerLook(GAME.charId, GAME.look);
+      const h = getHuman();
+      if (h) { h.charId = AFX.heroSpriteId(); h.def = charById(h.charId) || h.def; h.auraId = GAME.look.aura; }
+      root.querySelectorAll('[data-hex]').forEach((n) => {
+        n.textContent = GAME.look[n.dataset.hex];
+      });
+      document.querySelectorAll('#afLookCanvas, #afLookPreviewMenu').forEach(buildLookPreview);
+      try { SFX.tone(620, 0.05, 'square', 0.05, 880); } catch (e) {}
+    };
+    root.querySelectorAll('[data-look]').forEach((inp) => {
+      inp.oninput = () => { GAME.look[inp.dataset.look] = inp.value; apply(); };
+    });
+    root.querySelectorAll('[data-swatch]').forEach((b) => {
+      b.onclick = () => {
+        const key = (b.closest('.af-color') && b.closest('.af-color').querySelector('[data-look]'));
+        const target = key ? key.dataset.look : 'a';
+        GAME.look[target] = b.dataset.swatch;
+        const inp = root.querySelector('[data-look="' + target + '"]');
+        if (inp) inp.value = b.dataset.swatch;
+        apply();
+        buildLookEditor(root);
+      };
+    });
+    root.querySelectorAll('[data-aura]').forEach((b) => {
+      b.onclick = () => {
+        GAME.look.aura = b.dataset.aura;
+        root.querySelectorAll('[data-aura]').forEach((x) => x.classList.toggle('on', x.dataset.aura === GAME.look.aura));
+        apply();
+      };
+    });
+  };
+  const buildLookEditor = (root) => {
+    const holder = root.querySelector('[data-look-controls]');
+    if (!holder) return;
+    holder.innerHTML = lookControls(false);
+    bindLook(root);
+  };
+  AFX.buildLookEditor = buildLookEditor;
+  AFX.bindLook = bindLook;
+
+  /* menu block */
+  const injectMenuLook = () => {
+    const start = document.getElementById('btnStart');
+    if (!start || document.getElementById('afLookBlock')) return;
+    const block = el('div', 'block');
+    block.id = 'afLookBlock';
+    block.innerHTML = `
+      <h2 class="sect">Fighter customizer <span class="badge violet">LOOK</span></h2>
+      <div class="af-look">
+        <div class="af-look-preview"><canvas id="afLookPreviewMenu" width="112" height="146"></canvas></div>
+        <div data-look-controls></div>
+      </div>
+      <button class="btn ghost wide" id="afLookFull" type="button">
+        <span class="af-ico">${ICONS.palette}</span>OPEN FULL CUSTOMIZER</button>`;
+    start.parentNode.insertBefore(block, start);
+    buildLookEditor(block);
+    document.getElementById('afLookFull').onclick = () => AFX.openLookModal();
+    buildLookPreview(document.getElementById('afLookPreviewMenu'));
+  };
+
+  /* full modal */
+  AFX.openLookModal = () => {
+    let modal = document.getElementById('lookModal');
+    if (!modal) {
+      modal = el('div', 'modal');
+      modal.id = 'lookModal';
+      modal.innerHTML = `
+        <div class="sheet narrow">
+          <button class="close" id="afLookClose" type="button">✕</button>
+          <div class="sheet-head"><div>
+            <div class="kicker">Palette forge · syncs online</div>
+            <h1 class="game-title" style="font-size:1.15rem">FIGHTER CUSTOMIZER</h1>
+          </div><span class="badge emerald">LIVE</span></div>
+          <div class="af-look">
+            <div class="af-look-preview"><canvas id="afLookCanvas" width="120" height="156"></canvas></div>
+            <div data-look-controls></div>
+          </div>
+          <div class="divider"></div>
+          <div class="row between">
+            <span class="tiny muted">Colours regenerate the 20×26 sprite frames instantly.</span>
+            <button class="btn ghost" id="afLookReset" type="button">RESET</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      document.getElementById('afLookClose').onclick = () => closeAll();
+      document.getElementById('afLookReset').onclick = () => {
+        GAME.look = AFX.defaultLook();
+        buildLookEditor(modal);
+        buildLookPreview(document.getElementById('afLookCanvas'));
+      };
+    }
+    buildLookEditor(modal);
+    buildLookPreview(document.getElementById('afLookCanvas'));
+    if (typeof openModal === 'function') openModal('lookModal');
+    else modal.classList.add('open');
+  };
+
+  /* armory shortcut chip */
+  const injectArmoryLook = () => {
+    const stats = document.getElementById('tabStats');
+    if (!stats || document.getElementById('afLookChip')) return;
+    const chip = el('button', 'chip', '<span class="af-ico">' + ICONS.palette + '</span>LOOK');
+    chip.id = 'afLookChip';
+    chip.type = 'button';
+    chip.onclick = () => AFX.openLookModal();
+    stats.insertAdjacentElement('afterend', chip);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  KINETIC HUD EXTRAS — stamina, style meter, P2 vitals, net chip
+   * ------------------------------------------------------------------ */
+  const mkStyle = () => {
+    const box = el('div');
+    box.id = 'afStyle';
+    box.innerHTML = `<span class="rank" id="afRank">D</span>
+      <div class="meter"><i id="afStyleBar"></i></div>
+      <div class="lbl" id="afStyleLbl">STYLE</div>
+      <div class="callouts" id="afCallouts"></div>`;
+    document.body.appendChild(box);
+    return box;
+  };
+  const mkStam = () => {
+    const box = el('div', 'af-stam');
+    box.id = 'afStam';
+    box.innerHTML = '<b>DASH</b><i></i><i></i><i></i>';
+    const group = document.querySelector('.hud-group');
+    if (group) group.appendChild(box);
+    return box;
+  };
+  const mkP2 = () => {
+    const box = el('div');
+    box.id = 'afP2Hud';
+    box.innerHTML = `<span class="nm">P2</span>
+      <div class="bar"><i id="afP2Bar" style="width:100%"></i></div>
+      <span class="fp" id="afP2Fp">--</span>`;
+    document.body.appendChild(box);
+    return box;
+  };
+  const mkNet = () => {
+    const box = el('div');
+    box.id = 'afNetHud';
+    document.body.appendChild(box);
+    return box;
+  };
+  const mkVersion = () => {
+    const box = el('div', null, 'AFX 2.6');
+    box.id = 'afVersion';
+    document.body.appendChild(box);
+  };
+
+  let styleBox = null, stamBox = null, p2Box = null;
+  let lastCallout = '';
+
+  AFX.uiTick = () => {
+    try {
+      /* stamina pips */
+      if (!stamBox || !document.body.contains(stamBox)) stamBox = document.getElementById('afStam') || mkStam();
+      const h = getHuman();
+      if (h) {
+        const mv = AFX.state(h);
+        const pips = stamBox.querySelectorAll('i');
+        pips.forEach((p, i) => {
+          const filled = i < mv.stam;
+          if (p.classList.contains('f') !== filled) {
+            p.classList.toggle('f', filled);
+            if (filled) { p.classList.remove('re'); void p.offsetWidth; p.classList.add('re'); }
+          }
+        });
+      }
+      /* style chain */
+      if (!styleBox || !document.body.contains(styleBox)) styleBox = document.getElementById('afStyle') || mkStyle();
+      const s = AFX.style;
+      const show = s.pts > 12 && GAME.state === 'playing';
+      styleBox.classList.toggle('on', show);
+      if (show) {
+        const rank = AFX.RANKS[s.rank] || AFX.RANKS[0];
+        const rankEl = document.getElementById('afRank');
+        const bar = document.getElementById('afStyleBar');
+        if (rankEl && rankEl.textContent !== rank.id) {
+          rankEl.textContent = rank.id;
+          rankEl.className = 'rank ' + rank.id.toLowerCase();
+        }
+        if (bar) bar.style.width = Math.min(100, (s.pts / 1400) * 100).toFixed(1) + '%';
+        const lbl = document.getElementById('afStyleLbl');
+        if (lbl) lbl.textContent = 'DMG ×' + s.mult.toFixed(2);
+        const c = document.getElementById('afCallouts');
+        if (c && s.callout && s.callout !== lastCallout) {
+          lastCallout = s.callout;
+          c.innerHTML = '<span>' + s.callout + '</span>';
+        } else if (c && !s.callout) { c.innerHTML = ''; lastCallout = ''; }
+      }
+      /* local 2P vitals */
+      if (!p2Box || !document.body.contains(p2Box)) p2Box = document.getElementById('afP2Hud') || mkP2();
+      if (AFX.p2.on && AFX.p2.fighter && GAME.state === 'playing') {
+        const f2 = AFX.p2.fighter;
+        p2Box.classList.add('on');
+        const bar = document.getElementById('afP2Bar');
+        if (bar) bar.style.width = (clamp(f2.hp / f2.maxHp, 0, 1) * 100).toFixed(1) + '%';
+        const fp = document.getElementById('afP2Fp');
+        if (fp) fp.textContent = 'SLOT ' + (f2.active + 1) + ' · ' + (skillById(f2.slots[f2.active].skillId).name);
+      } else p2Box.classList.remove('on');
+    } catch (e) { AFX.warn('uiTick', e); }
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  DUAL-STICK TOUCH CONTROLS
+   * ------------------------------------------------------------------ */
+  AFX.touch = { aimId: null, firing: false, root: null, knob: null };
+
+  const touchSetup = () => {
+    const layer = document.getElementById('touchLayer');
+    if (!layer || document.getElementById('afAim')) return;
+
+    /* right aim + fire stick */
+    const aim = el('div');
+    aim.id = 'afAim';
+    aim.innerHTML = '<div class="ring"></div><div class="knob" id="afAimKnob"></div><div class="hint">AIM · FIRE</div>';
+    layer.appendChild(aim);
+    const knob = aim.querySelector('.knob');
+
+    const center = () => {
+      const r = aim.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2 };
+    };
+    const move = (t) => {
+      const c = center();
+      const dx = t.clientX - c.x, dy = t.clientY - c.y;
+      const d = Math.hypot(dx, dy);
+      const k = Math.min(1, d / (c.r * 0.72));
+      const a = Math.atan2(dy, dx);
+      knob.style.transform = `translate(${Math.cos(a) * k * c.r * 0.55}px,${Math.sin(a) * k * c.r * 0.55}px)`;
+      const h = getHuman();
+      if (h) {
+        h.aim = a;
+        if (Math.abs(Math.cos(a)) > 0.12) h.facing = Math.cos(a) >= 0 ? 1 : -1;
+      }
+      const fire = d > c.r * 0.5;
+      if (fire !== AFX.touch.firing) {
+        AFX.touch.firing = fire;
+        GAME.touch.casting = fire;
+        if (fire) NET.castPulse = true;
+        aim.classList.toggle('firing', fire);
+      }
+    };
+    const start = (e) => {
+      e.preventDefault();
+      AFX.touch.aimId = e.pointerId;
+      try { aim.setPointerCapture(e.pointerId); } catch (err) {}
+      try { SFX.ensure(); SFX.arm(); } catch (err) {}
+      move(e);
+    };
+    const end = () => {
+      AFX.touch.aimId = null;
+      AFX.touch.firing = false;
+      GAME.touch.casting = false;
+      knob.style.transform = 'translate(0,0)';
+      aim.classList.remove('firing');
+    };
+    aim.addEventListener('pointerdown', start);
+    aim.addEventListener('pointermove', (e) => { if (e.pointerId === AFX.touch.aimId) move(e); });
+    aim.addEventListener('pointerup', end);
+    aim.addEventListener('pointercancel', end);
+
+    /* floating left move stick: re-centre under the thumb on first touch */
+    const stick = document.getElementById('stick');
+    if (stick) {
+      window.addEventListener('touchstart', (e) => {
+        if (!GAME.touch.on) return;
+        const t = e.touches[0];
+        if (!t) return;
+        if (t.clientX > window.innerWidth * 0.46) return;
+        if (e.target && e.target.closest && e.target.closest('button')) return;
+        const size = stick.offsetWidth || 104;
+        stick.style.left = (t.clientX - size / 2) + 'px';
+        stick.style.top = (t.clientY - size / 2) + 'px';
+        stick.style.bottom = 'auto';
+        stick.classList.remove('idle');
+      }, { passive: true });
+      if (!stick.__afMoved) {
+        stick.__afMoved = 1;
+        stick.classList.add('idle');
+      }
+    }
+
+    /* action cluster */
+    const cluster = el('div');
+    cluster.id = 'afTouchBtns';
+    cluster.innerHTML = `
+      <button type="button" class="amber" data-af="dash">DASH<small>G</small></button>
+      <button type="button" class="violet" data-af="slam">SLAM<small>C</small></button>
+      <button type="button" class="rose" data-af="grapple">HOOK<small>Q</small></button>
+      <button type="button" data-af="swap">SWAP<small>E</small></button>
+      <button type="button" data-af="jump">JUMP<small>SPC</small></button>
+      <button type="button" class="rose" data-af="cast">CAST<small>F</small></button>`;
+    layer.appendChild(cluster);
+    cluster.querySelectorAll('[data-af]').forEach((b) => {
+      b.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        try { SFX.ensure(); SFX.arm(); } catch (err) {}
+        AFX.touchAction(b.dataset.af);
+      });
+    });
+  };
+
+  AFX.touchAction = (what) => {
+    const h = getHuman();
+    if (what === 'swap') { AFX.cycleSlot(1); return; }
+    if (!h) return;
+    if (what === 'jump') { if (!AFX.tryJump(h)) { h.jumpBuf = 0.16; if (GAME.netRole === 'client') NET.jumpPulse = true; } return; }
+    if (what === 'dash') { AFX.tryDash(h); return; }
+    if (what === 'slam') { if (!AFX.trySlam(h)) AFX.state(h).slideT = 0.26; return; }
+    if (what === 'grapple') {
+      const idx = h.slots.findIndex((w, i) => i < h.unlocked && w && w.skillId === 'grapple');
+      if (idx >= 0) {
+        h.active = idx;
+        if (typeof renderSlots === 'function') renderSlots();
+        if (GAME.netRole === 'client') { NET.castPulse = true; GAME.touch.casting = true; setTimeout(() => { GAME.touch.casting = false; }, 90); }
+        else cast(WORLD, h, idx);
+        return;
+      }
+      AFX.cycleSlot(1);
+      return;
+    }
+    if (what === 'cast') {
+      NET.castPulse = true;
+      GAME.mouse.down = true;
+      setTimeout(() => { GAME.mouse.down = false; }, 120);
+    }
+  };
+
+  AFX.cycleSlot = (dir) => {
+    const h = getHuman();
+    if (!h) return;
+    const max = Math.max(1, h.unlocked);
+    h.active = (h.active + dir + max) % max;
+    if (typeof renderSlots === 'function') renderSlots();
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  NORMAL-MODE OVERCLOCK PANEL (1.0× – 3.0× for FP)
+   * ------------------------------------------------------------------ */
+  AFX.steps = (wf) => {
+    const keys = ['sizeMult', 'powerMult', 'speedMult', 'durationMult'];
+    return keys.reduce((n, k) => n + Math.max(0, Math.round(((wf[k] || 1) - 1) / 0.25)), 0);
+  };
+  AFX.upgradeCost = (sk, wf) => {
+    const steps = AFX.steps(wf);
+    if (!steps) return 0;
+    return Math.ceil((1 + (sk.fp || 0) * 0.6) * steps);
+  };
+
+  const _slotCost = slotCost;
+  slotCost = function AFX_slotCost(wf) {
+    const base = _slotCost(wf);
+    if (GAME.mode !== 'normal' || !wf) return base;
+    return base + AFX.upgradeCost(skillById(wf.skillId), wf);
+  };
+
+  const _renderArmory = renderArmory;
+  renderArmory = function AFX_renderArmory() {
+    _renderArmory();
+    try {
+      if (GAME.mode !== 'normal') return;
+      const h = getHuman();
+      const ed = document.getElementById('armoryEditor');
+      if (!h || !ed) return;
+      const slot = h.slots[GAME.draftSlot];
+      if (!slot) return;
+      const sk = skillById(slot.skillId);
+      const spent = typeof usedFP === 'function' ? usedFP(h) : 0;
+      const cap = typeof totalFP === 'function' ? totalFP() : 12;
+      const baseCost = sk.fp;
+      const upCost = AFX.upgradeCost(sk, slot);
+      const cost = baseCost + upCost;
+      const free = cap - spent;
+
+      const slider = (key, label, color) => {
+        const v = slot[key] || 1;
+        const c = AFX.upgradeCost(sk, Object.assign({}, slot, { [key]: v })) -
+          AFX.upgradeCost(sk, Object.assign({}, slot, { sizeMult: 1, powerMult: 1, speedMult: 1, durationMult: 1 }));
+        return `<div class="af-slider ${v >= 3 ? 'max' : ''}">
+          <div class="hd"><span>${label}</span><b style="color:${color}">${v.toFixed(2)}×</b></div>
+          <input type="range" min="1" max="3" step="0.25" value="${v}" data-afmult="${key}">
+          <div class="cost"><span>+${Math.max(0, c)} FP at this setting</span><span>${(v * 100) | 0}%</span></div>
+        </div>`;
+      };
+
+      ed.innerHTML = `
+        <div class="af-budget">
+          <span>SLOT #${GAME.draftSlot + 1} · <b>${sk.name}</b></span>
+          <span>BUDGET <b class="${cost <= free + (spent - cost) ? '' : ''}">${cost}</b> / ${cap} FP
+            · FREE <b class="${free >= 0 ? 'ok' : 'bad'}">${free}</b></span>
+        </div>
+        <div class="node" style="border-color:rgba(251,191,36,.5)">
+          <h5 style="color:#fde68a">Overclock · normal mode</h5>
+          <div class="af-overclock">
+            ${slider('sizeMult', 'SIZE', '#fcd34d')}
+            ${slider('powerMult', 'POWER', '#fda4af')}
+            ${slider('speedMult', 'SPEED', '#a5f3fc')}
+            ${slider('durationMult', 'DURATION', '#c4b5fd')}
+          </div>
+          <div class="tiny muted" style="margin-top:6px">
+            Base ${baseCost} FP + overclock ${upCost} FP =
+            <b style="color:${cost <= cap ? '#6ee7b7' : '#fda4af'}">${cost} FP</b>
+            · every 0.25× step costs <b>${Math.ceil(1 + sk.fp * 0.6)}</b> FP on this tier.
+          </div>
+        </div>
+        <div class="node" style="border-color:rgba(34,211,238,.5)">
+          <h5 style="color:#a5f3fc">Base skill</h5>
+          <div class="af-tinylist">
+            ${SKILLS.map((s) => {
+              const next = Object.assign({}, slot, { skillId: s.id });
+              const total = s.fp + AFX.upgradeCost(s, next);
+              const ok = spent - cost + total <= cap;
+              return `<button type="button" data-afskill="${s.id}" class="${slot.skillId === s.id ? 'on' : ''}"
+                ${ok ? '' : 'disabled style="opacity:.4"'}>${s.icon} ${s.name}<span class="fp">${total}</span></button>`;
+            }).join('')}
+          </div>
+        </div>`;
+
+      ed.querySelectorAll('[data-afmult]').forEach((inp) => {
+        inp.oninput = () => {
+          const next = Object.assign({}, slot, { [inp.dataset.afmult]: +inp.value });
+          const spentWithout = spent - slotCost(slot);
+          const nextCost = skillById(next.skillId).fp + AFX.upgradeCost(skillById(next.skillId), next);
+          if (spentWithout + nextCost > cap) {
+            toast('Not enough FP for that overclock.', 'rose');
+            inp.value = (slot[inp.dataset.afmult] || 1);
+            return;
+          }
+          slot[inp.dataset.afmult] = +inp.value;
+          AFX.emit('postCast', []);
+          if (typeof syncPreview === 'function') syncPreview(h);
+          renderArmory();
+          if (typeof renderSlots === 'function') renderSlots();
+        };
+      });
+      ed.querySelectorAll('[data-afskill]').forEach((b) => {
+        b.onclick = () => {
+          const id = b.dataset.afskill;
+          const s = skillById(id);
+          const next = Object.assign({}, slot, { skillId: id });
+          const spentWithout = spent - slotCost(slot);
+          if (spentWithout + s.fp + AFX.upgradeCost(s, next) > cap) {
+            toast(`Not enough FP — ${s.name} needs ${s.fp}.`, 'rose');
+            return;
+          }
+          slot.skillId = id;
+          try { SFX.tone(620, 0.07, 'square', 0.08); } catch (e) {}
+          if (typeof syncPreview === 'function') syncPreview(h);
+          renderArmory();
+          if (typeof renderSlots === 'function') renderSlots();
+        };
+      });
+    } catch (e) { AFX.warn('armory overclock', e); }
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  BOOTSTRAP THE UI
+   * ------------------------------------------------------------------ */
+  AFX.uiBoot = () => {
+    try {
+      iconize && AFX.iconizeAll();
+      injectArmoryLook();
+      injectMenuLook();
+      touchSetup();
+      mkStyle(); mkStam(); mkP2(); mkNet(); mkVersion();
+      AFX.registerLook(GAME.charId, GAME.look);
+      const mv = document.getElementById('afLookPreviewMenu');
+      if (mv) buildLookPreview(mv);
+      /* keep the chip/state tidy when the class changes */
+      const grid = document.getElementById('charGrid');
+      if (grid) {
+        grid.addEventListener('click', () => {
+          setTimeout(() => {
+            GAME.look = AFX.defaultLook();
+            const blk = document.getElementById('afLookBlock');
+            if (blk) buildLookEditor(blk);
+            AFX.registerLook(GAME.charId, GAME.look);
+          }, 0);
+        });
+      }
+    } catch (e) { AFX.warn('uiBoot', e); }
+  };
+})();
+
+/* ============================================================================
+   AFX 2.6 — installer: wraps the engine bindings, wires inputs, boots the UI
+   ========================================================================== */
+(function AFX_INSTALL() {
+  'use strict';
+  const AFX = window.__AFX;
+  if (!AFX) { console.error('[AFX] core missing'); return; }
+
+  /* ------------------------------ engine wraps ---------------------------- */
+  try {
+    const _step = step;
+    step = function AFX_step(world, dt) {
+      try { AFX.emit('preStep', [world, dt]); } catch (e) {}
+      const r = _step(world, dt);
+      try { AFX.emit('postStep', [world, dt]); } catch (e) {}
+      return r;
+    };
+  } catch (e) { AFX.warn('step wrap', e); }
+
+  try {
+    const _render = render;
+    render = function AFX_render(cv, world, cam, focusId) {
+      let useCam = cam;
+      try {
+        if (cv && cam) AFX.frameCamera(cam, cv.width, cv.height);
+        const kick = GAME.camKick;
+        if (kick && kick.t > 0) {
+          kick.t -= 0.016;
+          const k = clamp(kick.t / 0.18, 0, 1);
+          useCam = { x: cam.x - kick.x * k * 0.018, y: cam.y - kick.y * k * 0.014, zoom: cam.zoom };
+        }
+        if (world === WORLD) AFX.uiTick();
+      } catch (e) { AFX.warn('render pre', e); }
+      const r = _render(cv, world, useCam, focusId);
+      try {
+        AFX.emit('postRender', [cv.getContext('2d'), world, useCam, cv.width, cv.height]);
+      } catch (e) { AFX.warn('render post', e); }
+      return r;
+    };
+  } catch (e) { AFX.warn('render wrap', e); }
+
+  try {
+    const _loadMap = loadMap;
+    loadMap = function AFX_loadMap(world, mapId, scale) {
+      const r = _loadMap(world, mapId, scale);
+      try {
+        if (!world.isPreview) AFX.buildArena(world, mapById(mapId).id, scale || 1);
+        else { world.platforms = []; world.voidEdges = false; }
+      } catch (e) { AFX.warn('arena build', e); }
+      return r;
+    };
+  } catch (e) { AFX.warn('loadMap wrap', e); }
+
+  try {
+    const _spawn = spawnFighter;
+    spawnFighter = function AFX_spawn(o) {
+      const f = _spawn(o);
+      try {
+        AFX.state(f);
+        f.zPrev = f.wz;
+        if (o && o.look) {
+          f.lookSig = Object.assign({ base: o.charId || f.charId }, o.look);
+          f.charId = AFX.registerLook(f.lookSig.base, f.lookSig);
+          f.def = charById(f.charId) || f.def;
+        }
+        if (f.isHuman) f.auraId = (GAME.look && GAME.look.aura) || 'none';
+      } catch (e) { AFX.warn('spawn', e); }
+      return f;
+    };
+  } catch (e) { AFX.warn('spawn wrap', e); }
+
+  try {
+    const _boot = bootstrap;
+    bootstrap = function AFX_bootstrap() {
+      const r = _boot();
+      try { AFX.uiBoot(); } catch (e) { AFX.warn('uiBoot', e); }
+      return r;
+    };
+  } catch (e) { AFX.warn('bootstrap wrap', e); }
+
+  /* ------------------------------- inputs -------------------------------- */
+  const h = () => getHuman();
+  try {
+    window.addEventListener('keydown', (e) => {
+      if (GAME.state !== 'playing') return;
+      const f = h();
+      if (!f || e.repeat) return;
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { AFX.tryDash(f); }
+      else if (e.code === 'Space') { AFX.tryJump(f); }
+      else if (e.code === 'KeyC' || e.code === 'ControlLeft' || e.code === 'ControlRight') {
+        if (f.wz > 1) AFX.trySlam(f); else AFX.state(f).slideT = 0.24;
+      } else if (e.code === 'KeyG') {
+        if (!AFX.tryDash(f)) AFX.state(f).slideT = 0.26;
+      } else if (e.code === 'KeyF') {
+        GAME.mouse.down = true;
+        NET.castPulse = true;
+      } else if (e.code === 'KeyQ') { AFX.cycleSlot(1); }
+      else if (e.code === 'KeyE') { AFX.cycleSlot(-1); }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'KeyF') GAME.mouse.down = false;
+    });
+    const cv = document.getElementById('game');
+    if (cv) {
+      cv.addEventListener('mousedown', (e) => {
+        if (e.button === 2) { e.preventDefault(); const f = h(); if (f) AFX.tryDash(f); }
+      });
+    }
+    window.addEventListener('blur', () => { GAME.mouse.down = false; GAME.touch.casting = false; });
+  } catch (e) { AFX.warn('input', e); }
+
+  /* --------------------------- local 2P launcher -------------------------- */
+  try {
+    const anchor = document.getElementById('modeAnything');
+    if (anchor && !document.getElementById('afLocal2P')) {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.id = 'afLocal2P';
+      b.type = 'button';
+      b.innerHTML = '<span class="af-ico"><svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#a5f3fc" d="M0 1h8v6H0z"/><path fill="#08111f" d="M1 2h1v1H1zM3 2h1v1H3zM6 2h1v1H6zM1 4h1v1H1zM3 4h1v1H3zM6 4h1v1H6zM2 6h4v1H2z"/></svg></span>LOCAL 2P';
+      b.onclick = () => AFX.startLocal2();
+      anchor.insertAdjacentElement('afterend', b);
+    }
+    const desc = document.getElementById('modeDesc');
+    if (desc) {
+      desc.insertAdjacentHTML('afterend',
+        '<p class="tiny muted" id="af2PCopy" style="margin:4px 0 0">' +
+        'P1 WASD · SPACE jump · F fire · G dash · Q/E skills — ' +
+        'P2 ARROWS · SHIFT/NUMPAD0 jump · K/ENTER fire · L dash · O/P skills</p>');
+    }
+  } catch (e) { AFX.warn('local2p ui', e); }
+
+  /* ---------------------- white-hot velocity escalation -------------------- */
+  AFX.on.postRender.push(function AFX_hotShots(ctx, world, cam, W, H) {
+    if (!world || !world.bullets || world.isPreview) return;
+    world.bullets.forEach((b) => {
+      if (!b.hot || b.hot < 1.4) return;
+      const p = w2s(b.wx, b.wy, b.wz, cam, W, H);
+      const z = cam.zoom;
+      const k = Math.min(2, b.hot) / 2;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + k * 0.55) + ')';
+      ctx.lineWidth = Math.max(1.5, (b.radius * 0.5 + 1) * z * (0.8 + k));
+      const a = Math.atan2(b.vy, b.vx);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - Math.cos(a) * 46 * z * k, p.y - Math.sin(a) * 46 * z * k);
+      ctx.stroke();
+      /* sonic ring */
+      ctx.strokeStyle = 'rgba(253,230,138,' + (0.2 + k * 0.4) + ')';
+      ctx.lineWidth = Math.max(1, 1.2 * z);
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, b.radius * 2.6 * z, b.radius * 1.4 * z, a, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    });
+  });
+
+  /* --------------------------- aura / trail render ------------------------ */
+  AFX.on.postRender.push(function AFX_aura(ctx, world, cam, W, H) {
+    if (!world || world.isPreview || !world.fighters) return;
+    const t = world.time || 0;
+    world.fighters.forEach((f) => {
+      if (!f.auraId || f.auraId === 'none' || f.respawnT > 0) return;
+      const col = AFX.auraColor(f.auraId);
+      if (!col) return;
+      const base = w2s(f.wx, f.wy, 0, cam, W, H);
+      const z = cam.zoom;
+      ctx.save();
+      const pulse = 0.7 + Math.sin(t * 5 + f.wx * 0.01) * 0.3;
+      ctx.strokeStyle = col;
+      ctx.globalAlpha = 0.35 * pulse;
+      ctx.lineWidth = Math.max(1.4, 2.2 * z);
+      ctx.beginPath();
+      ctx.ellipse(base.x, base.y, 20 * z * pulse, 11 * z * pulse, 0, 0, TAU);
+      ctx.stroke();
+      /* rising motes */
+      for (let i = 0; i < 3; i++) {
+        const ph = (t * 1.6 + i * 0.33 + f.wy * 0.002) % 1;
+        ctx.globalAlpha = (1 - ph) * 0.5;
+        ctx.fillStyle = col;
+        const dx = Math.sin(t * 2 + i * 2.1 + f.wx * 0.01) * 12 * z;
+        ctx.fillRect(base.x + dx, base.y - ph * 46 * z, 3 * z, 3 * z);
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    });
+  });
+})();
+
+  AFX = window.__AFX;
+  /* ===== end AFX 2.6 upgrade layer ===== */
 
   /* ------------------------------- bootstrap ----------------------------- */
   function bootstrap() {
