@@ -828,6 +828,42 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
   #afStyle .meter{width:84px}
 }
 
+/* ===================== 2.7 online arena: 5-letter rooms ===================== */
+.af-code{font:800 clamp(2rem,11vw,2.8rem)/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.28em;
+  text-align:center;padding:14px 8px;border:3px solid #1f3b52;background:linear-gradient(180deg,#0a1a26,#061019);
+  color:#a5f3fc;text-shadow:0 0 18px rgba(34,211,238,.45);cursor:pointer;user-select:all;
+  box-shadow:inset 0 0 24px rgba(34,211,238,.09)}
+.af-code-in{flex:1;min-width:0;font:800 1.25rem ui-monospace,Menlo,Consolas,monospace;letter-spacing:.34em;
+  text-align:center;text-transform:uppercase;padding:12px 8px;border:3px solid #1f3b52;background:#061019;
+  color:#e9f1ff;border-radius:0}
+.af-code-in:focus{outline:none;border-color:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.18)}
+.af-rooms{display:flex;flex-direction:column;gap:6px;margin-top:6px;max-height:210px;overflow:auto}
+.af-room{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:8px 10px;
+  border:2px solid #1c3348;background:#081420;color:#dbeafe;font-family:ui-monospace,Menlo,Consolas,monospace;
+  text-align:left;cursor:pointer}
+.af-room:hover{border-color:#22d3ee;background:#0a2230}
+.af-room-code{font-weight:800;font-size:1rem;letter-spacing:.18em;color:#fde68a}
+.af-room-meta{font-size:.62rem;color:#93a8c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.af-rooms-empty{margin:4px 0}
+.af-player{padding:3px 0;border-bottom:1px dashed #16283c}
+@media (max-width:520px){
+  .af-code{letter-spacing:.2em;font-size:2.1rem}
+  .af-room-meta{font-size:.58rem}
+  .af-net-top p{display:none}
+}
+/* -------------------- 2.7 diagnostics drawer (temporary) ------------------- */
+.af-diag{margin-top:10px}
+.af-diag-btn{width:100%}
+.af-diag-body{margin:6px 0 0;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-word;
+  font:500 .6rem/1.5 ui-monospace,Menlo,Consolas,monospace;color:#9fd8e8;background:#04080f;
+  border:2px solid #16283c;padding:8px;border-radius:0}
+.af-diag-body.hidden{display:none}
+/* ------------------------- 2.7 online rematch strip ------------------------ */
+.af-rematch{margin-top:12px;border-top:1px dashed #1f3b52;padding-top:10px}
+.af-rematch-head{align-items:center}
+.af-rematch-code{color:#fde68a;letter-spacing:.16em}
+.af-rematch-note{margin:6px 0 0}
+
 </style>
 </head>
 <body>
@@ -7825,6 +7861,1103 @@ table.rank tr.me td{background:#0a2432;color:#a5f3fc}
       ctx.globalAlpha = 1;
     });
   });
+})();
+
+/* ============================================================================
+   AFX 2.7 — ONLINE ARENA: 5-letter room codes + a live room list.
+   The hand-copied WebRTC invite blobs are gone. A five-character code is
+   published through public Nostr relays over WSS on port 443 (the same port
+   as HTTPS, so phone networks and hotel/school firewalls let it through).
+   The relays only carry the handshake and the room list; the match itself is
+   still the original peer-to-peer data channel.
+   ========================================================================== */
+(function AFX_ONLINE() {
+  'use strict';
+  const AFX = window.__AFX;
+  if (!AFX) return;
+  if (typeof NET === 'undefined' || typeof netHost !== 'function') return;
+
+  /* ------------------------------------------------------------------ *
+   *  SHA-256 (pure JS — works on file:// where crypto.subtle is missing)
+   * ------------------------------------------------------------------ */
+  const K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+  const H0 = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  function sha256(bytes) {
+    const len = bytes.length;
+    const total = (((len + 8) >> 6) + 1) << 6;
+    const buf = new Uint8Array(total);
+    buf.set(bytes);
+    buf[len] = 0x80;
+    const bits = len * 8;
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(total - 4, bits >>> 0);
+    dv.setUint32(total - 8, Math.floor(bits / 0x100000000));
+    const h = H0.slice();
+    const w = new Array(64);
+    for (let i = 0; i < total; i += 64) {
+      for (let j = 0; j < 16; j++) w[j] = dv.getUint32(i + j * 4);
+      for (let j = 16; j < 64; j++) {
+        const s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+        const s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+        w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+      }
+      let [a, b, c, d, e, f, g, k] = h;
+      for (let j = 0; j < 64; j++) {
+        const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        const ch = (e & f) ^ (~e & g);
+        const t1 = (k + S1 + ch + K[j] + w[j]) | 0;
+        const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        const mj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + mj) | 0;
+        k = g; g = f; f = e; e = (d + t1) | 0;
+        d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h[0] = (h[0] + a) | 0; h[1] = (h[1] + b) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+      h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + k) | 0;
+    }
+    const out = new Uint8Array(32);
+    const odv = new DataView(out.buffer);
+    h.forEach((v, i) => odv.setUint32(i * 4, v >>> 0));
+    return out;
+  }
+  const utf8 = (s) => new TextEncoder().encode(s);
+  const hexOf = (b) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  const bytesOf = (hex) => {
+    const out = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return out;
+  };
+  const shaHex = (s) => hexOf(sha256(typeof s === 'string' ? utf8(s) : s));
+
+  /* ------------------------------------------------------------------ *
+   *  secp256k1 + BIP340 Schnorr — relays verify signatures, so sign
+   * ------------------------------------------------------------------ */
+  const FP = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
+  const FN = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+  const GX = BigInt('0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798');
+  const GY = BigInt('0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8');
+  const fmod = (a, m) => ((a % (m || FP)) + (m || FP)) % (m || FP);
+  function finv(a, m) {
+    let [r0, r1] = [fmod(a, m), m];
+    let [s0, s1] = [BigInt(1), BigInt(0)];
+    while (r1 !== BigInt(0)) {
+      const q = r0 / r1;
+      [r0, r1] = [r1, r0 - q * r1];
+      [s0, s1] = [s1, s0 - q * s1];
+    }
+    return fmod(s0, m);
+  }
+  function padd(p, q) {
+    if (!p) return q;
+    if (!q) return p;
+    const [x1, y1] = p, [x2, y2] = q;
+    if (x1 === x2) {
+      if (fmod(y1 + y2) === BigInt(0)) return null;
+      const l = fmod(BigInt(3) * x1 * x1 * finv(BigInt(2) * y1, FP), FP);
+      const x3 = fmod(l * l - BigInt(2) * x1, FP);
+      return [x3, fmod(l * (x1 - x3) - y1, FP)];
+    }
+    const l = fmod((y2 - y1) * finv(x2 - x1, FP), FP);
+    const x3 = fmod(l * l - x1 - x2, FP);
+    return [x3, fmod(l * (x1 - x3) - y1, FP)];
+  }
+  function pmul(pt, k) {
+    let r = null, a = pt;
+    let n = fmod(k, FN);
+    while (n > BigInt(0)) {
+      if (n & BigInt(1)) r = padd(r, a);
+      a = padd(a, a);
+      n >>= BigInt(1);
+    }
+    return r;
+  }
+  const pad64 = (v) => v.toString(16).padStart(64, '0');
+  const taggedHash = (tag, msg) => {
+    const t = sha256(utf8(tag));
+    return sha256(new Uint8Array([...t, ...t, ...msg]));
+  };
+  function schnorrSign(sk, msg, aux) {
+    const d0 = BigInt('0x' + hexOf(sk));
+    const P = pmul([GX, GY], d0);
+    const d = P[1] % BigInt(2) === BigInt(0) ? d0 : FN - d0;
+    const t = d ^ BigInt('0x' + hexOf(taggedHash('BIP0340/aux', aux)));
+    const px = bytesOf(pad64(P[0]));
+    const k0 = BigInt('0x' + hexOf(taggedHash('BIP0340/nonce',
+      new Uint8Array([...px, ...msg, ...bytesOf(pad64(fmod(t, FN)))])))) % FN;
+    if (k0 === BigInt(0)) throw new Error('nonce');
+    const R = pmul([GX, GY], k0);
+    const k = R[1] % BigInt(2) === BigInt(0) ? k0 : FN - k0;
+    const rx = bytesOf(pad64(R[0]));
+    const e = BigInt('0x' + hexOf(taggedHash('BIP0340/challenge',
+      new Uint8Array([...rx, ...px, ...msg])))) % FN;
+    return new Uint8Array([...rx, ...bytesOf(pad64(fmod(k + e * d, FN)))]);
+  }
+  const rnd = (n) => {
+    const out = new Uint8Array(n);
+    try { crypto.getRandomValues(out); } catch (e) {
+      for (let i = 0; i < n; i++) out[i] = (Math.random() * 256) | 0;
+    }
+    return out;
+  };
+
+  /* one throwaway identity per page load: no account, no name server */
+  const SK = rnd(32);
+  const PK = pad64(pmul([GX, GY], BigInt('0x' + hexOf(SK)))[0]);
+  const RID = hexOf(rnd(4));
+
+  /* ------------------------------------------------------------------ *
+   *  DIAGNOSTICS (temporary) — one line per stage of the join, on screen
+   *  and in the console, so a failed match can be pinned to an exact step:
+   *  relay down → join never published → no offer came back → handshake.
+   *  Read it in the online panel (DIAGNOSTICS) or with AFX.diag.dump().
+   * ------------------------------------------------------------------ */
+  const DIAG = { lines: [], max: 90, wantOpen: false };
+  const stamp = () => {
+    const d = new Date();
+    const p = (n, w) => String(n).padStart(w || 2, '0');
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3);
+  };
+  DIAG.log = (stage, detail) => {
+    const line = stamp() + '  ' + stage + (detail ? '  ·  ' + detail : '');
+    DIAG.lines.push(line);
+    if (DIAG.lines.length > DIAG.max) DIAG.lines.shift();
+    try { console.log('[AFX online] ' + line); } catch (e) {}
+    try { renderDiag(); } catch (e) {}
+  };
+  DIAG.alert = (stage, detail) => {
+    DIAG.log(stage, detail);
+    DIAG.wantOpen = true;
+    try { openDiag(); } catch (e) {}
+  };
+  DIAG.env = () => [
+    'build 2.7 online · room ' + (RM.code || '—') + ' · side ' + (NET.side || '—'),
+    'relays  ' + POOL.live + '/' + (POOL.socks.length || relayUrls().length) + ' open · ' + relayUrls().slice(0, 3).join(' '),
+    'browser ' + String(typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : '?').slice(0, 74),
+    'support websocket=' + (typeof WebSocket) + ' rtc=' + (typeof RTCPeerConnection) +
+      ' secure=' + (typeof isSecureContext !== 'undefined' ? String(isSecureContext) : '?'),
+    'peers   ' + NET.peers.length + ' · pending ' + Object.keys(RM.pending).length
+  ];
+  DIAG.dump = () => {
+    let env = '';
+    try { env = DIAG.env().join('\n'); } catch (e) { env = '(env unavailable)'; }
+    return env + '\n---\n' + (DIAG.lines.join('\n') || '(no events yet)');
+  };
+  AFX.diag = DIAG;
+
+  const signEvent = (kind, tags, content) => {
+    const ev = { kind, created_at: Math.floor(Date.now() / 1000), tags, content, pubkey: PK };
+    ev.id = shaHex(JSON.stringify([0, PK, ev.created_at, kind, tags, content]));
+    ev.sig = hexOf(schnorrSign(SK, bytesOf(ev.id), rnd(32)));
+    return ev;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  RELAY POOL — public Nostr relays, WSS on 443, no account
+   * ------------------------------------------------------------------ */
+  const RELAYS = [
+    'wss://nos.lol',
+    'wss://offchain.pub',
+    'wss://nostr.mom',
+    'wss://relay.snort.social',
+    'wss://relay.damus.io'
+  ];
+  const RELAY_LS = 'afx.relay';
+  function relayUrls() {
+    let custom = '';
+    try { custom = new URLSearchParams(location.search).get('relay') || localStorage.getItem(RELAY_LS) || ''; } catch (e) {}
+    if (/^wss?:\/\//i.test(custom)) return [custom].concat(RELAYS);
+    return RELAYS.slice();
+  }
+
+  const POOL = { socks: [], subs: {}, want: false, live: 0, seen: {}, whenLive: null };
+  const SUB_ID = 'afx2';
+
+  function poolStop() {
+    POOL.want = false;
+    POOL.socks.forEach((s) => { try { s.ws.close(); } catch (e) {} });
+    POOL.socks = [];
+    POOL.subs = {};
+    POOL.live = 0;
+    POOL.seen = {};
+  }
+
+  function poolPublish(ev, label) {
+    let sent = 0;
+    POOL.socks.forEach((s) => {
+      if (!s.ready) return;
+      try { s.ws.send(JSON.stringify(['EVENT', ev])); sent++; } catch (e) {}
+    });
+    if (label && label !== 'presence') {
+      DIAG.log('publish ' + label, sent + ' of ' + (POOL.socks.length || 0) + ' relay sockets');
+      if (sent) DIAG.pubFails = 0;
+      else {
+        DIAG.pubFails = (DIAG.pubFails || 0) + 1;
+        /* the first attempt can beat the socket open; only shout if it persists */
+        if (DIAG.pubFails >= 2) DIAG.alert('PUBLISH FAILED', label + ' reached no relay — no relay socket is open');
+      }
+    }
+    return sent;
+  }
+
+  function poolSub(tag, filter) {
+    POOL.subs[tag] = filter;
+    POOL.socks.forEach((s) => {
+      if (!s.ready) return;
+      try { s.ws.send(JSON.stringify(['REQ', SUB_ID + tag, filter])); } catch (e) {}
+    });
+  }
+
+  function poolConnect(url, tries) {
+    if (!POOL.want) return;
+    let ws;
+    try { ws = new WebSocket(url); } catch (e) { return; }
+    const sock = { url, ws, ready: false, tries: tries || 0 };
+    POOL.socks.push(sock);
+    DIAG.log('relay dialing', url);
+    ws.onopen = () => {
+      sock.ready = true;
+      POOL.live++;
+      DIAG.log('relay open', url + ' (' + POOL.live + ' up)');
+      Object.keys(POOL.subs).forEach((tag) => {
+        try { ws.send(JSON.stringify(['REQ', SUB_ID + tag, POOL.subs[tag]])); } catch (e) {}
+      });
+      if (POOL.whenLive) { const f = POOL.whenLive; POOL.whenLive = null; f(); }
+    };
+    ws.onmessage = (e) => {
+      const msgs = String(e.data).split('\n');
+      for (const raw of msgs) {
+        let a;
+        try { a = JSON.parse(raw); } catch (err) { continue; }
+        poolHandle(a);
+      }
+    };
+    ws.onerror = () => { DIAG.log('relay error', url); try { ws.close(); } catch (e) {} };
+    ws.onclose = () => {
+      if (sock.ready) { sock.ready = false; POOL.live = Math.max(0, POOL.live - 1); }
+      POOL.socks = POOL.socks.filter((s) => s !== sock);
+      DIAG.log('relay closed', url + ' (' + POOL.live + ' up)');
+      if (POOL.want && sock.tries < 4) {
+        DIAG.log('relay retry', url + ' attempt ' + (sock.tries + 2));
+        setTimeout(() => poolConnect(url, sock.tries + 1), 1800 + sock.tries * 1200);
+      } else if (POOL.want && !POOL.socks.some((s) => s.ready)) {
+        DIAG.alert('RELAYS UNREACHABLE', 'no relay would open — this network blocks them or they are down');
+      }
+    };
+  }
+
+  function poolHandle(a) {
+    if (a[0] === 'EVENT' && a[2] && a[2].kind) {
+      const ev = a[2];
+      if (POOL.seen[ev.id]) return;
+      POOL.seen[ev.id] = 1;
+      if (Object.keys(POOL.seen).length > 600) POOL.seen = {};
+      AFX.onRelayEvent(ev);
+    }
+  }
+
+  function poolStart() {
+    poolStop();
+    POOL.want = true;
+    relayUrls().slice(0, 4).forEach((url, i) => setTimeout(() => poolConnect(url), i * 150));
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  ROOM CODES — five characters, no look-alikes
+   * ------------------------------------------------------------------ */
+  const ALPHA = 'ACDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const ROOM_TAG = (code) => 'afx27-' + code;
+  const LOBBY_TAG = 'afx27-lobby';
+  function makeRoom() {
+    let s = '';
+    for (let i = 0; i < 5; i++) s += ALPHA[(Math.random() * ALPHA.length) | 0];
+    return s;
+  }
+  function normalizeRoom(raw) {
+    let s = String(raw == null ? '' : raw).trim();
+    if (/^AF[01]\s*:/i.test(s)) return '';
+    try {
+      const u = new URL(s);
+      const r = u.searchParams.get('room') || u.searchParams.get('code');
+      if (r) s = r;
+    } catch (e) {}
+    s = s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (s.length > 5 && /^[A-Z0-9]{5}$/.test(s.slice(0, 5)) && s.length > 8) s = s.slice(0, 5);
+    return s;
+  }
+  AFX.normalizeRoom = normalizeRoom;
+  AFX.roomCode = makeRoom;
+  AFX.relaySign = signEvent;
+  AFX.relayKey = PK;
+
+  /* ------------------------------------------------------------------ *
+   *  ROOM STATE
+   * ------------------------------------------------------------------ */
+  const RM = {
+    code: null, presenceT: 0, joinTries: 0, joinTimer: null,
+    pending: {}, rooms: {}, listT: 0
+  };
+  AFX.room = RM;
+
+  const nowSec = () => Math.floor(Date.now() / 1000);
+
+  function publishSignal(kind, body) {
+    if (!RM.code) { DIAG.log('publish ' + kind + ' SKIPPED', 'no room code yet'); return; }
+    const ev = signEvent(25000, [['t', ROOM_TAG(RM.code)]],
+      JSON.stringify(Object.assign({ v: 2, id: RID, k: kind }, body)));
+    return poolPublish(ev, kind);
+  }
+
+  function publishPresence(extra) {
+    if (!RM.code || NET.side !== 'host') return;
+    const ev = signEvent(30078, [['t', LOBBY_TAG], ['d', RM.code], ['r', RM.code]],
+      JSON.stringify({
+        c: RM.code, n: playerName(), p: 1 + NET.peers.length,
+        m: (mapById(GAME.mapId) || {}).name || 'Metro', k: GAME.mode,
+        t: Date.now(), s: extra || ''
+      }));
+    poolPublish(ev, 'presence');
+  }
+
+  function presenceLoop() {
+    if (RM.presenceT) return;
+    RM.presenceT = setInterval(() => {
+      if (!RM.code) return;
+      if (NET.side === 'host' && !GAME.netRole) publishPresence('');
+    }, 9000);
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  HANDSHAKE — join → offer → answer, all over the room tag
+   * ------------------------------------------------------------------ */
+  function newPeerConnection() {
+    const pc = new RTCPeerConnection(ICE);
+    NET.pcs.push(pc);
+    pc.onconnectionstatechange = () => netConnState(pc);
+    return pc;
+  }
+
+  async function hostOffer(guestId) {
+    if (RM.pending[guestId]) return;
+    DIAG.log('host slot', 'opening for guest ' + guestId);
+    RM.pending[guestId] = { pc: null, at: Date.now() };
+    let pc;
+    try {
+      pc = newPeerConnection();
+      const dc = pc.createDataChannel('forge', { ordered: true });
+      pc.__peer = netBindChannel(dc);
+      RM.pending[guestId].pc = pc;
+      await pc.setLocalDescription(await pc.createOffer());
+      const desc = await netWaitIce(pc);
+      DIAG.log('ice gathered', 'host ' + (((desc.sdp || '').match(/^a=candidate/gm) || []).length) + ' candidates, sdp ' + (desc.sdp || '').length + ' chars');
+      publishSignal('offer', {
+        to: guestId, sdp: desc.sdp,
+        name: playerName(), char: GAME.charId, look: GAME.look || null
+      });
+      netStatus('WAITING FOR GUEST', false);
+      netLog('Sent the arena offer for ' + guestId + '…');
+    } catch (e) {
+      delete RM.pending[guestId];
+      DIAG.alert('OFFER FAILED', e.message);
+      netLog('Could not open a slot: ' + e.message, 'rose');
+    }
+  }
+
+  async function joinAnswer(bo) {
+    if (NET.hostPeer) return;
+    netStatus('CONNECTING', false);
+    netLog('Host found — linking…');
+    DIAG.log('offer received', 'from ' + String(bo.id || '?').slice(0, 8) + ', sdp ' + String(bo.sdp || '').length + ' chars');
+    let pc;
+    try {
+      pc = newPeerConnection();
+      pc.ondatachannel = (e) => { pc.__peer = netBindChannel(e.channel); };
+      await pc.setRemoteDescription({ type: 'offer', sdp: bo.sdp });
+      await pc.setLocalDescription(await pc.createAnswer());
+      const desc = await netWaitIce(pc);
+      DIAG.log('ice gathered', 'guest ' + (((desc.sdp || '').match(/^a=candidate/gm) || []).length) + ' candidates');
+      publishSignal('answer', { to: bo.id, sdp: desc.sdp });
+      netStatus('WAITING FOR HOST', false);
+    } catch (e) {
+      DIAG.alert('ANSWER FAILED', e.message);
+      netLog('Handshake failed: ' + e.message, 'rose');
+    }
+  }
+
+  function onSignal(ev) {
+    let bo;
+    try { bo = JSON.parse(ev.content || '{}'); } catch (e) { return; }
+    if (!bo || bo.v !== 2 || !bo.k) return;
+    if (bo.id === RID) return;
+    if (bo.to && bo.to !== RID) return;
+    DIAG.log('signal in', bo.k + (bo.to ? ' for me' : ' broadcast') + ' from ' + String(bo.id || '?').slice(0, 8));
+
+    if (bo.k === 'join') {
+      if (NET.side !== 'host' || GAME.netRole) return;
+      const guest = String(bo.id || '').slice(0, 24);
+      if (!guest) return;
+      if (NET.peers.length + Object.keys(RM.pending).length >= 7) return;
+      if (!RM.pending[guest]) netLog((bo.n || 'A player') + ' is knocking…');
+      publishPresence('joined');
+      hostOffer(guest);
+      return;
+    }
+    if (bo.k === 'offer') {
+      if (NET.side !== 'client' || NET.hostPeer) return;
+      joinAnswer(bo);
+      return;
+    }
+    if (bo.k === 'answer') {
+      const p = Object.keys(RM.pending).find((k) => RM.pending[k].pc && k === bo.id);
+      if (!p) return;
+      const pc = RM.pending[p].pc;
+      pc.setRemoteDescription({ type: 'answer', sdp: bo.sdp }).then(() => {
+        netLog('Guest replied — opening the channel…', 'emerald');
+      }).catch((e) => netLog('Bad reply: ' + e.message, 'rose'));
+    }
+  }
+
+  function onLobby(ev) {
+    let d;
+    try { d = JSON.parse(ev.content || '{}'); } catch (e) { return; }
+    if (!d || !d.c) return;
+    if (d.t && Date.now() - d.t > 60000) return;
+    if (d.c === RM.code) return;
+    RM.rooms[d.c] = { code: d.c, name: String(d.n || 'ROOM').slice(0, 14), players: d.p | 0, map: d.m, mode: d.k, t: d.t || Date.now() };
+    renderRooms();
+  }
+
+  AFX.onRelayEvent = (ev) => {
+    const tags = ev.tags || [];
+    const ts = tags.filter((t) => t[0] === 't').map((t) => t[1]);
+    if (ts.indexOf(LOBBY_TAG) >= 0) { onLobby(ev); return; }
+    if (RM.code && ts.indexOf(ROOM_TAG(RM.code)) >= 0) onSignal(ev);
+  };
+
+  /* the panel's diagnostics drawer: on-screen view of the console log */
+  function renderDiag() {
+    const pre = $('netDiag');
+    if (!pre) return;
+    const txt = DIAG.dump();
+    if (pre.textContent === txt) return;
+    pre.textContent = txt;
+    pre.scrollTop = pre.scrollHeight;
+  }
+
+  function openDiag() {
+    const pre = $('netDiag');
+    const btn = $('netDiagBtn');
+    if (!pre) return;
+    pre.classList.remove('hidden');
+    if (btn) btn.textContent = 'DIAGNOSTICS ▴';
+    renderDiag();
+  }
+
+  function closeDiag() {
+    const pre = $('netDiag');
+    const btn = $('netDiagBtn');
+    if (!pre) return;
+    pre.classList.add('hidden');
+    if (btn) btn.textContent = 'DIAGNOSTICS ▾';
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  ROOM LIST
+   * ------------------------------------------------------------------ */
+  const ROOM_TTL = 45000;
+
+  function liveRooms() {
+    const t = Date.now();
+    return Object.keys(RM.rooms)
+      .map((k) => RM.rooms[k])
+      .filter((r) => t - (+r.t || 0) < ROOM_TTL)
+      .sort((a, b) => (+b.t || 0) - (+a.t || 0));
+  }
+
+  function renderRooms() {
+    const box = $('netRooms');
+    if (!box) return;
+    const rows = liveRooms();
+    if (!rows.length) {
+      box.innerHTML = '<p class="tiny muted af-rooms-empty">No open rooms yet — ' +
+        (poolLive() ? 'host one on the other device and it shows up here.' : 'connecting to the relay…') + '</p>';
+      return;
+    }
+    box.innerHTML = rows.map((r) => `
+      <button type="button" class="af-room" data-code="${r.code}">
+        <span class="af-room-code">${r.code}</span>
+        <span class="af-room-meta">${escapeHtml(r.name || 'ROOM')} · ${r.players || 1}/8 · ${escapeHtml(String(r.map || 'ARENA'))}</span>
+      </button>`).join('');
+    box.querySelectorAll('[data-code]').forEach((b) => {
+      b.onclick = () => {
+        $('netJoinIn').value = b.dataset.code;
+        netJoin();
+      };
+    });
+  }
+
+  const poolLive = () => POOL.live > 0;
+
+  function roomsRefresh() {
+    if (POOL.want) poolSub(LOBBY_TAG, { kinds: [30078], '#t': [LOBBY_TAG], limit: 80 });
+    renderRooms();
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  HOST / JOIN
+   * ------------------------------------------------------------------ */
+  const _reset = netReset;
+  netReset = function AFX_netReset(hard) {
+    if (RM.joinTimer) { clearTimeout(RM.joinTimer); RM.joinTimer = null; }
+    RM.code = null;
+    RM.joinTries = 0;
+    RM.pending = {};
+    poolStop();
+    if (RM.presenceT) { clearInterval(RM.presenceT); RM.presenceT = 0; }
+    return _reset(hard);
+  };
+
+  const _setRole = netSetRole;
+  netSetRole = function AFX_netSetRole(side) {
+    const r = _setRole(side);
+    try {
+      if (side === 'client') {
+        if (!POOL.want) poolStart();
+        roomsRefresh();
+      }
+    } catch (e) {}
+    return r;
+  };
+
+  function showCode() {
+    const out = $('netOut');
+    if (out) out.value = RM.code || '';
+    const big = $('netCodeBig');
+    if (big) big.textContent = RM.code || '—';
+    const share = $('netShare');
+    if (share) share.disabled = !RM.code;
+  }
+
+  function shareLink() {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('room', RM.code || '');
+      const txt = u.toString();
+      if (navigator.share) { navigator.share({ title: 'Aether Forge room ' + RM.code, url: txt }).catch(() => {}); return; }
+      navigator.clipboard.writeText(txt).then(() => netLog('Invite link copied.', 'emerald'))
+        .catch(() => netLog('Link: ' + txt, 'amber'));
+    } catch (e) { netLog('Could not build the link.', 'rose'); }
+  }
+
+  netHost = function AFX_netHost() {
+    if (!window.RTCPeerConnection) { netLog('This browser has no WebRTC support.', 'rose'); return; }
+    if (NET.peers.length >= 7) { netLog('Lobby is full — 8 fighters max.', 'amber'); return; }
+    netReset(true);
+    netSetRole('host');
+    openModal('netModal');
+    RM.code = makeRoom();
+    RM.pending = {};
+    DIAG.log('host start', 'room ' + RM.code + ' · build 2.7');
+    poolStart();
+    presenceLoop();
+    netStatus('OPENING ROOM', false);
+    netLog('Room ' + RM.code + ' — opening the relay…');
+    showCode();
+    poolSub(ROOM_TAG(RM.code), { kinds: [25000], '#t': [ROOM_TAG(RM.code)] });
+    const announce = () => {
+      if (!RM.code) return;
+      publishPresence('');
+      DIAG.log('room open', RM.code + ' · ' + POOL.live + ' relay(s) carrying it');
+      netStatus('ROOM OPEN', true);
+      netLog('Room ' + RM.code + ' is live — say the code, or share the link.', 'emerald');
+    };
+    POOL.whenLive = announce;
+    setTimeout(announce, 2600);
+    netLobbyUI();
+    renderRooms();
+  };
+
+  netJoin = function AFX_netJoin() {
+    const el = $('netJoinIn');
+    const raw = (el && el.value) || '';
+    if (/^AF[01]\s*:/i.test(raw.trim())) {
+      netLog('That is an old invite block. Ask the host for the 5-letter room code.', 'amber');
+      return;
+    }
+    const code = normalizeRoom(raw);
+    if (code.length !== 5) {
+      netLog('Room codes are 5 letters — you typed ' + (code.length || 0) + '.', 'amber');
+      if (el) el.focus();
+      return;
+    }
+    if (!window.RTCPeerConnection) { netLog('This browser has no WebRTC support.', 'rose'); return; }
+    netReset(true);
+    netSetRole('client');
+    openModal('netModal');
+    RM.code = code;
+    RM.joinTries = 0;
+    DIAG.log('join start', 'room ' + code + ' (from "' + String(raw).slice(0, 14) + '")');
+    poolStart();
+    netStatus('LOOKING FOR ' + code, false);
+    netLog('Looking for room ' + code + '…');
+    poolSub(ROOM_TAG(code), { kinds: [25000], '#t': [ROOM_TAG(code)] });
+    const knock = () => {
+      if (!RM.code || NET.hostPeer) return;
+      RM.joinTries++;
+      if (RM.joinTries > 8) {
+        netStatus('NO ROOM', false);
+        DIAG.alert('NO OFFER CAME BACK', 'knocked ' + (RM.joinTries - 1) + '× on room ' + code + ' — host not open, wrong code, or the two phones are on different relays');
+        netLog('No room called ' + code + ' answered. Check the code, or ask the host to re-open it.', 'rose');
+        return;
+      }
+      DIAG.log('join published', 'knock ' + RM.joinTries + '/8 on ' + code);
+      publishSignal('join', { n: playerName(), char: GAME.charId, look: GAME.look || null });
+      RM.joinTimer = setTimeout(knock, 2400);
+    };
+    POOL.whenLive = knock;
+    setTimeout(knock, 1800);
+    netLobbyUI();
+  };
+
+  netAcceptReply = function AFX_netAcceptReply() {
+    netLog('No codes to paste any more — use the 5-letter room code.', 'amber');
+  };
+
+  /* host lobby: players + start */
+  netLobbyUI = function AFX_netLobbyUI() {
+    const box = $('netLobby');
+    if (!box) return;
+    if (NET.side !== 'host') { box.innerHTML = ''; return; }
+    const rows = NET.peers.map((p) => `
+      <div class="row between af-player">
+        <span class="tiny">${escapeHtml(p.name || 'RIVAL')}</span>
+        <span class="badge cyan">${String(p.id || '').toUpperCase()}</span>
+      </div>`).join('');
+    const pending = Object.keys(RM.pending).length;
+    box.innerHTML = `
+      <div class="net-step"><b>2</b><span>Players in the room.</span></div>
+      ${rows || '<p class="tiny muted" style="margin:0 0 6px">Nobody has joined yet.</p>'}
+      ${pending ? '<p class="tiny muted" style="margin:0 0 6px">' + pending + ' connecting…</p>' : ''}
+      <button class="btn primary wide" id="netStartDuel" ${NET.peers.length ? '' : 'disabled'} style="margin-top:6px">START MATCH</button>`;
+    const start = $('netStartDuel');
+    if (start) start.onclick = () => { if (NET.peers.length) { closeAll(); netHostStart(); } };
+    updateNetBadge();
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  PANEL — rebuilt in place, ids kept so the old wiring still lands
+   * ------------------------------------------------------------------ */
+  function buildPanel() {
+    const sheet = $('netModal') && $('netModal').querySelector('.sheet');
+    if (!sheet || sheet.dataset.afxOnline) return;
+    sheet.dataset.afxOnline = '1';
+    sheet.innerHTML = `
+      <button class="close" id="closeNet">✕</button>
+      <div class="sheet-head">
+        <div>
+          <div class="kicker">5-letter room code · any network</div>
+          <h1 class="game-title" style="font-size:1.15rem">🌐 Online Arena</h1>
+        </div>
+        <div class="net-status"><i class="dot" id="netDot"></i><span class="tiny" id="netStatus">OFFLINE</span></div>
+      </div>
+
+      <div class="block af-net-top">
+        <div class="row between" style="gap:6px">
+          <span class="tiny muted" id="netRoleLbl">Choose a side</span>
+          <span class="badge cyan" id="netPing">— ms</span>
+        </div>
+        <div class="row" style="gap:6px;margin-top:7px">
+          <button class="btn amber grow" id="netHostBtn">HOST A ROOM</button>
+          <button class="btn ghost grow" id="netJoinBtn">JOIN</button>
+        </div>
+        <p class="tiny muted" style="margin:7px 0 0">One player hosts and reads out five letters. Everyone else types them, or taps the room below. No codes to copy, nothing to paste.</p>
+      </div>
+
+      <div id="netHostPane" class="hidden">
+        <div class="net-step"><b>1</b><span>Room code — read it out.</span></div>
+        <div class="af-code" id="netCodeBig">—</div>
+        <div class="row" style="gap:6px;margin:8px 0 12px">
+          <button class="btn grow" id="netCopy">COPY CODE</button>
+          <button class="btn ghost grow" id="netShare">SHARE LINK</button>
+        </div>
+        <div id="netLobby"></div>
+      </div>
+
+      <div id="netJoinPane" class="hidden">
+        <div class="net-step"><b>1</b><span>Type the 5-letter code.</span></div>
+        <div class="row" style="gap:6px">
+          <input type="text" id="netJoinIn" maxlength="5" placeholder="ABCDE" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" class="af-code-in" />
+          <button class="btn primary" id="netJoinGo">JOIN</button>
+        </div>
+        <div class="row" style="gap:6px;margin-top:7px">
+          <button class="btn ghost grow" id="netPaste">PASTE FROM CLIPBOARD</button>
+          <button class="btn ghost" id="netRefreshRooms">↻</button>
+        </div>
+        <div class="net-step" style="margin-top:12px"><b>2</b><span>Open rooms right now.</span></div>
+        <div id="netRooms" class="af-rooms"></div>
+      </div>
+
+      <div class="af-diag">
+        <button class="btn ghost wide af-diag-btn" id="netDiagBtn">DIAGNOSTICS ▾</button>
+        <pre id="netDiag" class="af-diag-body hidden"></pre>
+        <button class="btn ghost wide" id="netDiagCopy" style="margin-top:6px">COPY DIAGNOSTICS</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="row between" style="gap:6px">
+        <span class="tiny muted" id="netLog">Not connected.</span>
+        <button class="btn ghost" id="netDone">CLOSE</button>
+      </div>
+
+      <div style="display:none">
+        <textarea id="netOut"></textarea>
+        <textarea id="netIn"></textarea>
+        <textarea id="netJoinOut"></textarea>
+        <button id="netAccept"></button>
+        <button id="netJoinCopy"></button>
+      </div>`;
+  }
+
+  function bindPanel() {
+    const hostBtn = $('netHostBtn');
+    if (hostBtn) hostBtn.onclick = () => netHost();
+    const joinBtn = $('netJoinBtn');
+    if (joinBtn) joinBtn.onclick = () => {
+      netReset(true);
+      netSetRole('client');
+      openModal('netModal');
+      netStatus('PICK A ROOM', false);
+      netLog('Type the 5-letter code, or tap a room below.');
+      roomsRefresh();
+      setTimeout(roomsRefresh, 1200);
+      setTimeout(() => { const el = $('netJoinIn'); if (el) el.focus(); }, 80);
+    };
+    const go = $('netJoinGo');
+    if (go) go.onclick = () => netJoin();
+    const paste = $('netPaste');
+    if (paste) paste.onclick = async () => {
+      try {
+        const txt = await navigator.clipboard.readText();
+        const code = normalizeRoom(txt);
+        $('netJoinIn').value = code.slice(0, 5);
+        if (code.length === 5) netJoin();
+        else netLog('Clipboard has no 5-letter code in it.', 'amber');
+      } catch (e) {
+        netLog('Clipboard blocked — long-press the box and paste.', 'amber');
+        const el = $('netJoinIn'); if (el) el.focus();
+      }
+    };
+    const share = $('netShare');
+    if (share) share.onclick = () => shareLink();
+    const refresh = $('netRefreshRooms');
+    if (refresh) refresh.onclick = () => { RM.rooms = {}; poolStart(); roomsRefresh(); };
+    const inp = $('netJoinIn');
+    if (inp) {
+      inp.addEventListener('input', () => {
+        const clean = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+        if (inp.value !== clean) inp.value = clean;
+        if (clean.length === 5 && !NET.hostPeer && RM.code !== clean) setTimeout(() => netJoin(), 220);
+      });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); netJoin(); } });
+    }
+    const codeBig = $('netCodeBig');
+    if (codeBig) codeBig.onclick = () => netCopy($('netOut'));
+    const copy = $('netCopy');
+    if (copy) copy.onclick = () => netCopy($('netOut'));
+    const done = $('netDone');
+    if (done) done.onclick = () => closeAll();
+    const shut = $('closeNet');
+    if (shut) shut.onclick = () => closeAll();
+    const acc = $('netAccept');
+    if (acc) acc.onclick = () => netAcceptReply();
+    const jc = $('netJoinCopy');
+    if (jc) jc.onclick = () => netCopy($('netOut'));
+    const dbtn = $('netDiagBtn');
+    if (dbtn) dbtn.onclick = () => {
+      const pre = $('netDiag');
+      if (pre && pre.classList.contains('hidden')) openDiag(); else closeDiag();
+    };
+    const next = $('btnNextMap');
+    if (next) next.onclick = () => {
+      if (GAME.netRole === 'host') rematchHost();
+      else if (GAME.netRole === 'client') guestReady();
+      else { closeAll(); startMatch(); }
+    };
+    const back = $('btnBackMenu');
+    if (back) back.onclick = () => {
+      if (GAME.netRole) { leaveRoom(); return; }
+      closeAll();
+      GAME.state = 'menu';
+      buildMapCards('mapGrid');
+      openModal('menuModal');
+    };
+    const dcopy = $('netDiagCopy');
+    if (dcopy) dcopy.onclick = () => {
+      const txt = DIAG.dump();
+      try {
+        navigator.clipboard.writeText(txt)
+          .then(() => netLog('Diagnostics copied — paste them in the chat.', 'emerald'))
+          .catch(() => netLog('Copy blocked — long-press the log instead.', 'amber'));
+      } catch (e) { netLog('Copy blocked — long-press the log instead.', 'amber'); }
+    };
+    renderDiag();
+  }
+
+  const _bindUI = bindUI;
+  bindUI = function AFX_bindUI() {
+    const r = _bindUI();
+    try { buildPanel(); bindPanel(); } catch (e) { AFX.warn('online panel', e); }
+    return r;
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  OPTIONAL TURN — only if you run one yourself.
+   *  No public TURN is bundled: Metered's free "openrelayproject" relay was
+   *  retired (its hostname now answers with a discard address and the shared
+   *  login is rejected), and a dead TURN entry only makes ICE gathering
+   *  slower before every match. Add your own with
+   *    index.html?turn=relay.example.com:443&turnuser=USER&turnpass=PASS
+   *  or a TLS relay with ?turns=relay.example.com:5349
+   * ------------------------------------------------------------------ */
+  try {
+    if (ICE && Array.isArray(ICE.iceServers)) {
+      const q = new URLSearchParams(location.search);
+      const plain = q.get('turn');
+      const secure = q.get('turns');
+      const host = plain || secure;
+      if (host) {
+        const entry = { urls: (plain ? 'turn:' : 'turns:') + host };
+        if (q.get('turnuser')) entry.username = q.get('turnuser');
+        if (q.get('turnpass')) entry.credential = q.get('turnpass');
+        ICE.iceServers.push(entry);
+      }
+    }
+  } catch (e) {}
+
+  /* ------------------------------------------------------------------ *
+   *  NO ROUTE HINT — say what to try when the data channel cannot open
+   * ------------------------------------------------------------------ */
+  const _connState = typeof netConnState === 'function' ? netConnState : function () {};
+  netConnState = function AFX_connState(pc) {
+    try {
+      if (pc) {
+        const st = pc.connectionState + '/' + (pc.iceConnectionState || '?');
+        if (pc.__diagSt !== st) {
+          pc.__diagSt = st;
+          DIAG.log('link state', st);
+        }
+        if (pc.connectionState === 'failed') {
+          DIAG.alert('LINK FAILED', 'no direct route — same Wi-Fi or a TURN relay is needed');
+          netLog('No direct route between the two devices. Put both on the same Wi-Fi or one phone\'s hotspot, or point the game at a TURN relay with ?turn=host:port&turnuser=…&turnpass=…', 'rose');
+        }
+      }
+    } catch (e) {}
+    return _connState(pc);
+  };
+
+  if (typeof netHandle === 'function') {
+    const _handleMsg = netHandle;
+    netHandle = function AFX_handleMsg(m, peer) {
+      try {
+        if (m && m.t === 'hello') {
+          DIAG.log('data channel', 'hello received — fighter link is up');
+          /* a linked guest no longer holds a pending slot, so it can come back */
+          if (NET.side === 'host' && peer) {
+            Object.keys(RM.pending).forEach((g) => {
+              const p = RM.pending[g];
+              if (p && p.pc && p.pc.__peer === peer) {
+                DIAG.log('host slot ready', 'guest ' + g.slice(0, 8) + ' linked');
+                delete RM.pending[g];
+              }
+            });
+          }
+        } else if (m && m.t === 'start') {
+          DIAG.log('data channel', 'start message received');
+        } else if (m && m.t === 'ready' && NET.side === 'host') {
+          if (peer) RE.ready[peer.id || 'guest'] = 1;
+          const live = NET.peers.filter(peerOpen);
+          DIAG.log('rematch', 'ready ' + Object.keys(RE.ready).length + '/' + live.length);
+          updateRematchStrip();
+          if (live.length && GAME.state === 'podium' && live.every((p) => RE.ready[p.id])) rematchHost();
+        }
+      } catch (e) {}
+      return _handleMsg(m, peer);
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  REMATCH — the room survives the podium: same code, next round
+   * ------------------------------------------------------------------ */
+  const RE = { ready: {} };
+
+  function rematchHost() {
+    if (!RM.code) { netHost(); return; }
+    const live = NET.peers.filter(peerOpen);
+    if (!live.length) {
+      netLog('Room ' + RM.code + ' is still open — waiting for a player to link.', 'amber');
+      poolStart();
+      poolSub(ROOM_TAG(RM.code), { kinds: [25000], '#t': [ROOM_TAG(RM.code)] });
+      presenceLoop();
+      publishPresence('waiting');
+      updateRematchStrip();
+      return;
+    }
+    RE.ready = {};
+    DIAG.log('rematch', 'host starting round 2 in room ' + RM.code);
+    netLog('Rematch — same room ' + RM.code + ', fresh arena.', 'emerald');
+    netHostStart();
+    updateRematchStrip();
+  }
+
+  function guestReady() {
+    if (!RM.code) return;
+    if (!NET.hostPeer) { autoRejoin(); return; }
+    netSend({ t: 'ready' });
+    const b = $('afReadyBtn');
+    if (b) { b.textContent = 'READY · WAITING FOR HOST'; b.disabled = true; }
+    netLog('Ready sent — the host starts the next round.', 'cyan');
+  }
+
+  function leaveRoom() {
+    try { if (NET.hostPeer || NET.peers.length) netSend({ t: 'bye' }); } catch (e) {}
+    netReset(true);
+    GAME.netRole = null;
+    GAME.state = 'menu';
+    closeAll();
+    buildMapCards('mapGrid');
+    openModal('menuModal');
+  }
+
+  /* the guest keeps the code, so a dropped link walks straight back in */
+  function autoRejoin() {
+    if (!RM.code || NET.hostPeer) return;
+    DIAG.log('auto rejoin', 'back to room ' + RM.code);
+    NET.side = 'client';
+    poolStart();
+    poolSub(ROOM_TAG(RM.code), { kinds: [25000], '#t': [ROOM_TAG(RM.code)] });
+    let tries = 0;
+    const knock = () => {
+      if (!RM.code || NET.hostPeer || tries > 8) return;
+      tries++;
+      publishSignal('join', { n: playerName(), char: GAME.charId, look: GAME.look || null });
+      setTimeout(knock, 2400);
+    };
+    knock();
+  }
+
+  const STRIP_SIG = { v: '' };
+  function updateRematchStrip() {
+    const sheet = $('podiumModal') && $('podiumModal').querySelector('.sheet');
+    const old = $('afRematch');
+    if (!sheet || !GAME.netRole || !RM.code) { if (old) old.remove(); return; }
+    const host = GAME.netRole === 'host';
+    const live = NET.peers.filter(peerOpen).length;
+    const ready = Object.keys(RE.ready).length;
+    const sig = [host, live, ready, RM.code].join('|');
+    if (STRIP_SIG.v === sig && old) return;
+    STRIP_SIG.v = sig;
+    let box = old;
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'afRematch';
+      box.className = 'af-rematch';
+      sheet.appendChild(box);
+    }
+    box.innerHTML = `
+      <div class="row between af-rematch-head">
+        <span class="tiny muted">ROOM <b class="af-rematch-code">${RM.code}</b></span>
+        <span class="tiny ${live ? 'ok' : 'warn'}">${host ? live + ' linked' : 'linked to host'}${ready ? ' · ' + ready + ' ready' : ''}</span>
+      </div>
+      <div class="row" style="gap:6px;margin-top:6px">
+        <button class="btn primary grow" id="afReadyBtn">${host ? (live ? 'REMATCH · SAME ROOM' : 'WAITING FOR PLAYER…') : 'READY FOR REMATCH'}</button>
+        <button class="btn ghost" id="afLeaveBtn">LEAVE</button>
+      </div>
+      <p class="tiny muted af-rematch-note">${host
+        ? (live ? 'Everyone stays in room ' + RM.code + ' — press rematch to deal a new arena.' : 'The room stays open; a friend can rejoin with ' + RM.code + '.')
+        : 'Room ' + RM.code + ' is still open — press ready, or just wait for the host.'}</p>`;
+    const rb = $('afReadyBtn');
+    if (rb) rb.onclick = () => (host ? rematchHost() : guestReady());
+    const lb = $('afLeaveBtn');
+    if (lb) lb.onclick = () => leaveRoom();
+  }
+
+  if (typeof netDropPeer === 'function') {
+    const _dropPeer = netDropPeer;
+    netDropPeer = function AFX_dropPeer(peer) {
+      const wasClient = NET.side === 'client';
+      const r = _dropPeer(peer);
+      try {
+        if (wasClient && RM.code && !NET.hostPeer) {
+          DIAG.log('link dropped', 'auto rejoining room ' + RM.code);
+          setTimeout(autoRejoin, 800);
+        }
+      } catch (e) {}
+      return r;
+    };
+  }
+
+  if (typeof startNetMatch === 'function') {
+    const _startNet = startNetMatch;
+    startNetMatch = function AFX_startNet2(side, cfg) {
+      RE.ready = {};
+      STRIP_SIG.v = '';
+      const r = _startNet(side, cfg);
+      try { const s = $('afRematch'); if (s) s.remove(); } catch (e) {}
+      return r;
+    };
+  }
+
+  if (typeof endMatch === 'function') {
+    const _endMatch = endMatch;
+    endMatch = function AFX_endMatch() {
+      const r = _endMatch();
+      try { setTimeout(updateRematchStrip, 80); } catch (e) {}
+      return r;
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  DEEP LINK — index.html?room=ABCDE joins straight away
+   * ------------------------------------------------------------------ */
+  try { window.addEventListener('load', () => {
+    try {
+      const code = normalizeRoom(new URLSearchParams(location.search).get('room') || '');
+      if (code.length !== 5) return;
+      buildPanel();
+      bindPanel();
+      netReset(true);
+      netSetRole('client');
+      openModal('netModal');
+      const el = $('netJoinIn');
+      if (el) el.value = code;
+      setTimeout(() => netJoin(), 120);
+    } catch (e) {}
+  }); } catch (e) {}
+
+  /* keep the room list fresh while the panel is open */
+  setInterval(() => {
+    const box = $('netRooms');
+    if (!box) return;
+    if (!document.getElementById('netModal').classList.contains('open')) return;
+    renderDiag();
+    roomsRefresh();
+  }, 4000);
+
+  DIAG.log('online module ready', 'build 2.7 · ' + RELAYS.length + ' relays · room codes + room list');
+
+  AFX.online = {
+    pool: POOL, room: RM, liveRooms, normalizeRoom,
+    rematch: { host: rematchHost, ready: guestReady, leave: leaveRoom, rejoin: autoRejoin, state: RE }
+  };
 })();
 
   AFX = window.__AFX;
